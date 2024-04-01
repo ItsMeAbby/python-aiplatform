@@ -34,7 +34,7 @@ _SPEC_ORDERS = {
 
 
 class _WorkerPoolSpec(NamedTuple):
-    """Specification container for Worker Pool specs used for distributed training.
+  """Specification container for Worker Pool specs used for distributed training.
 
     Usage:
 
@@ -50,40 +50,41 @@ class _WorkerPoolSpec(NamedTuple):
     Note that container and python package specs are not stored with this spec.
     """
 
-    replica_count: int = 0
-    machine_type: str = "n1-standard-4"
-    accelerator_count: int = 0
-    accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED"
-    boot_disk_type: str = "pd-ssd"
-    boot_disk_size_gb: int = 100
+  replica_count: int = 0
+  machine_type: str = "n1-standard-4"
+  accelerator_count: int = 0
+  accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED"
+  boot_disk_type: str = "pd-ssd"
+  boot_disk_size_gb: int = 100
+  tpu_topology: Optional[str] = None
 
-    def _get_accelerator_type(self) -> Optional[str]:
-        """Validates accelerator_type and returns the name of the accelerator.
+  def _get_accelerator_type(self) -> Optional[str]:
+    """Validates accelerator_type and returns the name of the accelerator.
 
-        Returns:
-            None if no accelerator or valid accelerator name.
+    Returns:
+        None if no accelerator or valid accelerator name.
 
-        Raise:
-            ValueError if accelerator type is invalid.
-        """
+    Raise:
+        ValueError if accelerator type is invalid.
+    """
 
-        # Raises ValueError if invalid accelerator_type
-        utils.validate_accelerator_type(self.accelerator_type)
+    # Raises ValueError if invalid accelerator_type
+    utils.validate_accelerator_type(self.accelerator_type)
 
-        accelerator_enum = getattr(
+    accelerator_enum = getattr(
             gca_accelerator_type_compat.AcceleratorType, self.accelerator_type
         )
 
-        if (
+    if (
             accelerator_enum
             != gca_accelerator_type_compat.AcceleratorType.ACCELERATOR_TYPE_UNSPECIFIED
         ):
-            return self.accelerator_type
+      return self.accelerator_type
 
-    @property
-    def spec_dict(self) -> Dict[str, Union[int, str, Dict[str, Union[int, str]]]]:
-        """Return specification as a Dict."""
-        spec = {
+  @property
+  def spec_dict(self) -> Dict[str, Union[int, str, Dict[str, Union[int, str]]]]:
+    """Return specification as a Dict."""
+    spec = {
             "machine_spec": {"machine_type": self.machine_type},
             "replica_count": self.replica_count,
             "disk_spec": {
@@ -92,21 +93,24 @@ class _WorkerPoolSpec(NamedTuple):
             },
         }
 
-        accelerator_type = self._get_accelerator_type()
-        if accelerator_type and self.accelerator_count:
-            spec["machine_spec"]["accelerator_type"] = accelerator_type
-            spec["machine_spec"]["accelerator_count"] = self.accelerator_count
+    accelerator_type = self._get_accelerator_type()
+    if accelerator_type and self.accelerator_count:
+      spec["machine_spec"]["accelerator_type"] = accelerator_type
+      spec["machine_spec"]["accelerator_count"] = self.accelerator_count
 
-        return spec
+    if self.tpu_topology:
+      spec["machine_spec"]["tpu_topology"] = self.tpu_topology
 
-    @property
-    def is_empty(self) -> bool:
-        """Returns True is replica_count > 0 False otherwise."""
-        return self.replica_count <= 0
+    return spec
+
+  @property
+  def is_empty(self) -> bool:
+    """Returns True is replica_count > 0 False otherwise."""
+    return self.replica_count <= 0
 
 
 class _DistributedTrainingSpec(NamedTuple):
-    """Configuration for distributed training worker pool specs.
+  """Configuration for distributed training worker pool specs.
 
     Vertex AI Training expects configuration in this order:
     [
@@ -138,16 +142,16 @@ class _DistributedTrainingSpec(NamedTuple):
     )
     """
 
-    chief_spec: _WorkerPoolSpec = _WorkerPoolSpec()
-    worker_spec: _WorkerPoolSpec = _WorkerPoolSpec()
-    server_spec: _WorkerPoolSpec = _WorkerPoolSpec()
-    evaluator_spec: _WorkerPoolSpec = _WorkerPoolSpec()
+  chief_spec: _WorkerPoolSpec = _WorkerPoolSpec()
+  worker_spec: _WorkerPoolSpec = _WorkerPoolSpec()
+  server_spec: _WorkerPoolSpec = _WorkerPoolSpec()
+  evaluator_spec: _WorkerPoolSpec = _WorkerPoolSpec()
 
-    @property
-    def pool_specs(
+  @property
+  def pool_specs(
         self,
     ) -> List[Dict[str, Union[int, str, Dict[str, Union[int, str]]]]]:
-        """Return each pools spec in correct order for Vertex AI as a list of
+    """Return each pools spec in correct order for Vertex AI as a list of
         dicts.
 
         Also removes specs if they are empty but leaves specs in if there unusual
@@ -157,96 +161,97 @@ class _DistributedTrainingSpec(NamedTuple):
         Returns:
             Order list of worker pool specs suitable for Vertex AI Training.
         """
-        if self.chief_spec.replica_count > 1:
-            raise ValueError("Chief spec replica count cannot be greater than 1.")
+    if self.chief_spec.replica_count > 1:
+      raise ValueError("Chief spec replica count cannot be greater than 1.")
 
-        spec_order = [
+    spec_order = [
             self.chief_spec,
             self.worker_spec,
             self.server_spec,
             self.evaluator_spec,
         ]
-        specs = [{} if s.is_empty else s.spec_dict for s in spec_order]
-        for i in reversed(range(len(spec_order))):
-            if spec_order[i].is_empty:
-                specs.pop()
-            else:
-                break
-        return specs
+    specs = [{} if s.is_empty else s.spec_dict for s in spec_order]
+    for i in reversed(range(len(spec_order))):
+      if spec_order[i].is_empty:
+        specs.pop()
+      else:
+        break
+    return specs
 
-    @classmethod
-    def chief_worker_pool(
-        cls,
-        replica_count: int = 0,
-        machine_type: str = "n1-standard-4",
-        accelerator_count: int = 0,
-        accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
-        boot_disk_type: str = "pd-ssd",
-        boot_disk_size_gb: int = 100,
-        reduction_server_replica_count: int = 0,
-        reduction_server_machine_type: str = None,
-    ) -> "_DistributedTrainingSpec":
-        """Parametrizes Config to support only chief with worker replicas.
+  @classmethod
+  def chief_worker_pool(
+      cls,
+      replica_count: int = 0,
+      machine_type: str = "n1-standard-4",
+      accelerator_count: int = 0,
+      accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
+      boot_disk_type: str = "pd-ssd",
+      boot_disk_size_gb: int = 100,
+      reduction_server_replica_count: int = 0,
+      reduction_server_machine_type: str = None,
+      tpu_topology: str = None,
+  ) -> "_DistributedTrainingSpec":
+    """Parametrizes Config to support only chief with worker replicas.
 
-        For replica is assigned to chief and the remainder to workers. All spec have the
-        same machine type, accelerator count, and accelerator type.
+    For replica is assigned to chief and the remainder to workers. All spec have
+    the
+    same machine type, accelerator count, and accelerator type.
 
-        Args:
-            replica_count (int):
-                The number of worker replicas. Assigns 1 chief replica and
-                replica_count - 1 worker replicas.
-            machine_type (str):
-                The type of machine to use for training.
-            accelerator_type (str):
-                Hardware accelerator type. One of ACCELERATOR_TYPE_UNSPECIFIED,
-                NVIDIA_TESLA_K80, NVIDIA_TESLA_P100, NVIDIA_TESLA_V100, NVIDIA_TESLA_P4,
-                NVIDIA_TESLA_T4
-            accelerator_count (int):
-                The number of accelerators to attach to a worker replica.
-            boot_disk_type (str):
-                Type of the boot disk (default is `pd-ssd`).
-                Valid values: `pd-ssd` (Persistent Disk Solid State Drive) or
-                `pd-standard` (Persistent Disk Hard Disk Drive).
-            boot_disk_size_gb (int):
-                Size in GB of the boot disk (default is 100GB).
-                boot disk size must be within the range of [100, 64000].
-            reduction_server_replica_count (int):
-                The number of reduction server replicas, default is 0.
-            reduction_server_machine_type (str):
-                The type of machine to use for reduction server, default is `n1-highcpu-16`.
+    Args:
+        replica_count (int): The number of worker replicas. Assigns 1 chief
+          replica and replica_count - 1 worker replicas.
+        machine_type (str): The type of machine to use for training.
+        accelerator_type (str): Hardware accelerator type. One of
+          ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100,
+          NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4, TPU_V2, TPU_V3.
+        accelerator_count (int): The number of accelerators to attach to a
+          worker replica.
+        boot_disk_type (str): Type of the boot disk (default is `pd-ssd`). Valid
+          values: `pd-ssd` (Persistent Disk Solid State Drive) or `pd-standard`
+            (Persistent Disk Hard Disk Drive).
+        boot_disk_size_gb (int): Size in GB of the boot disk (default is 100GB).
+          boot disk size must be within the range of [100, 64000].
+        reduction_server_replica_count (int): The number of reduction server
+          replicas, default is 0.
+        reduction_server_machine_type (str): The type of machine to use for
+          reduction server, default is `n1-highcpu-16`.
+        tpu_topology (str): TPU topology for the TPU type. This field is
+          required for the TPU v5 versions. This field is only passed to the
+          chief replica as TPU jobs only allow 1 replica.
 
-        Returns:
-            _DistributedTrainingSpec representing one chief and n workers all of
-            same type, optional with reduction server(s). If replica_count <= 0
-            then an empty spec is returned.
-        """
-        if replica_count <= 0:
-            return cls()
+    Returns:
+        _DistributedTrainingSpec representing one chief and n workers all of
+        same type, optional with reduction server(s). If replica_count <= 0
+        then an empty spec is returned.
+    """
+    if replica_count <= 0:
+      return cls()
 
-        chief_spec = _WorkerPoolSpec(
-            replica_count=1,
-            machine_type=machine_type,
-            accelerator_count=accelerator_count,
-            accelerator_type=accelerator_type,
-            boot_disk_type=boot_disk_type,
-            boot_disk_size_gb=boot_disk_size_gb,
-        )
+    chief_spec = _WorkerPoolSpec(
+        replica_count=1,
+        machine_type=machine_type,
+        accelerator_count=accelerator_count,
+        accelerator_type=accelerator_type,
+        boot_disk_type=boot_disk_type,
+        boot_disk_size_gb=boot_disk_size_gb,
+        tpu_topology=tpu_topology,
+    )
 
-        worker_spec = _WorkerPoolSpec(
-            replica_count=replica_count - 1,
-            machine_type=machine_type,
-            accelerator_count=accelerator_count,
-            accelerator_type=accelerator_type,
-            boot_disk_type=boot_disk_type,
-            boot_disk_size_gb=boot_disk_size_gb,
-        )
+    worker_spec = _WorkerPoolSpec(
+        replica_count=replica_count - 1,
+        machine_type=machine_type,
+        accelerator_count=accelerator_count,
+        accelerator_type=accelerator_type,
+        boot_disk_type=boot_disk_type,
+        boot_disk_size_gb=boot_disk_size_gb,
+    )
 
-        reduction_server_spec = _WorkerPoolSpec(
+    reduction_server_spec = _WorkerPoolSpec(
             replica_count=reduction_server_replica_count,
             machine_type=reduction_server_machine_type,
         )
 
-        return cls(
+    return cls(
             chief_spec=chief_spec,
             worker_spec=worker_spec,
             server_spec=reduction_server_spec,

@@ -1085,11 +1085,11 @@ class _TrainingJob(base.VertexAiStatefulResource):
 
 
 class _CustomTrainingJob(_TrainingJob):
-    """ABC for Custom Training Pipelines.."""
+  """ABC for Custom Training Pipelines.."""
 
-    _supported_training_schemas = (schema.training_job.definition.custom_task,)
+  _supported_training_schemas = (schema.training_job.definition.custom_task,)
 
-    def __init__(
+  def __init__(
         self,
         # TODO(b/223262536): Make display_name parameter fully optional in next major release
         display_name: str,
@@ -1115,7 +1115,7 @@ class _CustomTrainingJob(_TrainingJob):
         model_encryption_spec_key_name: Optional[str] = None,
         staging_bucket: Optional[str] = None,
     ):
-        """
+    """
         Args:
             display_name (str):
                 Required. The user-defined name of this TrainingPipeline.
@@ -1263,9 +1263,9 @@ class _CustomTrainingJob(_TrainingJob):
                 Bucket used to stage source and training artifacts. Overrides
                 staging_bucket set in aiplatform.init.
         """
-        if not display_name:
-            display_name = self.__class__._generate_display_name()
-        super().__init__(
+    if not display_name:
+      display_name = self.__class__._generate_display_name()
+    super().__init__(
             display_name=display_name,
             project=project,
             location=location,
@@ -1275,39 +1275,39 @@ class _CustomTrainingJob(_TrainingJob):
             model_encryption_spec_key_name=model_encryption_spec_key_name,
         )
 
-        self._container_uri = container_uri
+    self._container_uri = container_uri
 
-        model_predict_schemata = None
-        if any(
+    model_predict_schemata = None
+    if any(
             [
                 model_instance_schema_uri,
                 model_parameters_schema_uri,
                 model_prediction_schema_uri,
             ]
         ):
-            model_predict_schemata = gca_model.PredictSchemata(
+      model_predict_schemata = gca_model.PredictSchemata(
                 instance_schema_uri=model_instance_schema_uri,
                 parameters_schema_uri=model_parameters_schema_uri,
                 prediction_schema_uri=model_prediction_schema_uri,
             )
 
-        # Create the container spec
-        env = None
-        ports = None
+    # Create the container spec
+    env = None
+    ports = None
 
-        if model_serving_container_environment_variables:
-            env = [
+    if model_serving_container_environment_variables:
+      env = [
                 gca_env_var.EnvVar(name=str(key), value=str(value))
                 for key, value in model_serving_container_environment_variables.items()
             ]
 
-        if model_serving_container_ports:
-            ports = [
+    if model_serving_container_ports:
+      ports = [
                 gca_model.Port(container_port=port)
                 for port in model_serving_container_ports
             ]
 
-        container_spec = gca_model.ModelContainerSpec(
+    container_spec = gca_model.ModelContainerSpec(
             image_uri=model_serving_container_image_uri,
             command=model_serving_container_command,
             args=model_serving_container_args,
@@ -1317,37 +1317,37 @@ class _CustomTrainingJob(_TrainingJob):
             health_route=model_serving_container_health_route,
         )
 
-        # create model payload
-        self._managed_model = gca_model.Model(
+    # create model payload
+    self._managed_model = gca_model.Model(
             description=model_description,
             predict_schemata=model_predict_schemata,
             container_spec=container_spec,
             encryption_spec=self._model_encryption_spec,
         )
 
-        self._staging_bucket = (
+    self._staging_bucket = (
             staging_bucket or initializer.global_config.staging_bucket
         )
 
-        if not self._staging_bucket:
-            raise RuntimeError(
+    if not self._staging_bucket:
+      raise RuntimeError(
                 "staging_bucket should be set in TrainingJob constructor or "
                 "set using aiplatform.init(staging_bucket='gs://my-bucket')"
             )
 
-        # Save explanationSpec as instance attributes
-        self._explanation_metadata = explanation_metadata
-        self._explanation_parameters = explanation_parameters
+    # Save explanationSpec as instance attributes
+    self._explanation_metadata = explanation_metadata
+    self._explanation_parameters = explanation_parameters
 
-        # Backing Custom Job resource is not known until after data preprocessing
-        # once Custom Job is known we log the console uri and the tensorboard uri
-        # this flags keeps that state so we don't log it multiple times
-        self._has_logged_custom_job = False
-        self._logged_web_access_uris = set()
+    # Backing Custom Job resource is not known until after data preprocessing
+    # once Custom Job is known we log the console uri and the tensorboard uri
+    # this flags keeps that state so we don't log it multiple times
+    self._has_logged_custom_job = False
+    self._logged_web_access_uris = set()
 
-    @property
-    def network(self) -> Optional[str]:
-        """The full name of the Google Compute Engine
+  @property
+  def network(self) -> Optional[str]:
+    """The full name of the Google Compute Engine
         [network](https://cloud.google.com/vpc/docs/vpc#networks) to which this
         CustomTrainingJob should be peered.
 
@@ -1357,127 +1357,123 @@ class _CustomTrainingJob(_TrainingJob):
         Private services access must already be configured for the network. If left
         unspecified, the CustomTrainingJob is not peered with any network.
         """
-        # Return `network` value in training task inputs if set in Map
-        self._assert_gca_resource_is_available()
-        return self._gca_resource.training_task_inputs.get("network")
+    # Return `network` value in training task inputs if set in Map
+    self._assert_gca_resource_is_available()
+    return self._gca_resource.training_task_inputs.get("network")
 
-    def _prepare_and_validate_run(
-        self,
-        model_display_name: Optional[str] = None,
-        model_labels: Optional[Dict[str, str]] = None,
-        replica_count: int = 1,
-        machine_type: str = "n1-standard-4",
-        accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
-        accelerator_count: int = 0,
-        boot_disk_type: str = "pd-ssd",
-        boot_disk_size_gb: int = 100,
-        reduction_server_replica_count: int = 0,
-        reduction_server_machine_type: Optional[str] = None,
-    ) -> Tuple[worker_spec_utils._DistributedTrainingSpec, Optional[gca_model.Model]]:
-        """Create worker pool specs and managed model as well validating the
-        run.
+  def _prepare_and_validate_run(
+      self,
+      model_display_name: Optional[str] = None,
+      model_labels: Optional[Dict[str, str]] = None,
+      replica_count: int = 1,
+      machine_type: str = "n1-standard-4",
+      accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
+      accelerator_count: int = 0,
+      boot_disk_type: str = "pd-ssd",
+      boot_disk_size_gb: int = 100,
+      reduction_server_replica_count: int = 0,
+      reduction_server_machine_type: Optional[str] = None,
+      tpu_topology: Optional[str] = None,
+  ) -> Tuple[
+      worker_spec_utils._DistributedTrainingSpec, Optional[gca_model.Model]
+  ]:
+    """Create worker pool specs and managed model as well validating the
 
-        Args:
-            model_display_name (str):
-                If the script produces a managed Vertex AI Model. The display name of
-                the Model. The name can be up to 128 characters long and can be consist
-                of any UTF-8 characters.
+    run.
 
-                If not provided upon creation, the job's display_name is used.
-            model_labels (Dict[str, str]):
-                Optional. The labels with user-defined metadata to
-                organize your Models.
-                Label keys and values can be no longer than 64
-                characters (Unicode codepoints), can only
-                contain lowercase letters, numeric characters,
-                underscores and dashes. International characters
-                are allowed.
-                See https://goo.gl/xmQnxf for more information
-                and examples of labels.
-            replica_count (int):
-                The number of worker replicas. If replica count = 1 then one chief
-                replica will be provisioned. If replica_count > 1 the remainder will be
-                provisioned as a worker replica pool.
-            machine_type (str):
-                The type of machine to use for training.
-            accelerator_type (str):
-                Hardware accelerator type. One of ACCELERATOR_TYPE_UNSPECIFIED,
-                NVIDIA_TESLA_K80, NVIDIA_TESLA_P100, NVIDIA_TESLA_V100, NVIDIA_TESLA_P4,
-                NVIDIA_TESLA_T4
-            accelerator_count (int):
-                The number of accelerators to attach to a worker replica.
-            boot_disk_type (str):
-                Type of the boot disk, default is `pd-ssd`.
-                Valid values: `pd-ssd` (Persistent Disk Solid State Drive) or
-                `pd-standard` (Persistent Disk Hard Disk Drive).
-            boot_disk_size_gb (int):
-                Size in GB of the boot disk, default is 100GB.
-                boot disk size must be within the range of [100, 64000].
-            reduction_server_replica_count (int):
-                The number of reduction server replicas, default is 0.
-            reduction_server_machine_type (str):
-                Optional. The type of machine to use for reduction server.
-        Returns:
-            Worker pools specs and managed model for run.
+    Args:
+        model_display_name (str): If the script produces a managed Vertex AI
+          Model. The display name of the Model. The name can be up to 128
+          characters long and can be consist of any UTF-8 characters.  If not
+          provided upon creation, the job's display_name is used.
+        model_labels (Dict[str, str]): Optional. The labels with user-defined
+          metadata to organize your Models. Label keys and values can be no
+          longer than 64 characters (Unicode codepoints), can only contain
+          lowercase letters, numeric characters, underscores and dashes.
+          International characters are allowed. See https://goo.gl/xmQnxf for
+          more information and examples of labels.
+        replica_count (int): The number of worker replicas. If replica count = 1
+          then one chief replica will be provisioned. If replica_count > 1 the
+          remainder will be provisioned as a worker replica pool.
+        machine_type (str): The type of machine to use for training.
+        accelerator_type (str): Hardware accelerator type. One of
+          ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100,
+          NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4, TPU_V2, TPU_V3
+        accelerator_count (int): The number of accelerators to attach to a
+          worker replica.
+        boot_disk_type (str): Type of the boot disk, default is `pd-ssd`. Valid
+          values: `pd-ssd` (Persistent Disk Solid State Drive) or `pd-standard`
+            (Persistent Disk Hard Disk Drive).
+        boot_disk_size_gb (int): Size in GB of the boot disk, default is 100GB.
+          boot disk size must be within the range of [100, 64000].
+        reduction_server_replica_count (int): The number of reduction server
+          replicas, default is 0.
+        reduction_server_machine_type (str): Optional. The type of machine to
+          use for reduction server.
+        tpu_topology (str): Optional. Only required if the machine type is a TPU
+          v5 version.
 
-        Raises:
-            RuntimeError: If Training job has already been run or model_display_name was
-                provided but required arguments were not provided in constructor.
-        """
+    Returns:
+        Worker pools specs and managed model for run.
 
-        if self._is_waiting_to_run():
-            raise RuntimeError("Custom Training is already scheduled to run.")
+    Raises:
+        RuntimeError: If Training job has already been run or model_display_name
+        was
+            provided but required arguments were not provided in constructor.
+    """
 
-        if self._has_run:
-            raise RuntimeError("Custom Training has already run.")
+    if self._is_waiting_to_run():
+      raise RuntimeError("Custom Training is already scheduled to run.")
 
-        # if args needed for model is incomplete
-        if model_display_name and not self._managed_model.container_spec.image_uri:
-            raise RuntimeError(
-                """model_display_name was provided but
+    if self._has_run:
+      raise RuntimeError("Custom Training has already run.")
+
+    # if args needed for model is incomplete
+    if model_display_name and not self._managed_model.container_spec.image_uri:
+      raise RuntimeError("""model_display_name was provided but
                 model_serving_container_image_uri was not provided when this
                 custom pipeline was constructed.
-                """
-            )
+                """)
 
-        if self._managed_model.container_spec.image_uri:
-            model_display_name = model_display_name or self._display_name + "-model"
+    if self._managed_model.container_spec.image_uri:
+      model_display_name = model_display_name or self._display_name + "-model"
 
-        # validates args and will raise
-        worker_pool_specs = (
-            worker_spec_utils._DistributedTrainingSpec.chief_worker_pool(
-                replica_count=replica_count,
-                machine_type=machine_type,
-                accelerator_count=accelerator_count,
-                accelerator_type=accelerator_type,
-                boot_disk_type=boot_disk_type,
-                boot_disk_size_gb=boot_disk_size_gb,
-                reduction_server_replica_count=reduction_server_replica_count,
-                reduction_server_machine_type=reduction_server_machine_type,
-            ).pool_specs
-        )
+    # validates args and will raise
+    worker_pool_specs = (
+        worker_spec_utils._DistributedTrainingSpec.chief_worker_pool(
+            replica_count=replica_count,
+            machine_type=machine_type,
+            accelerator_count=accelerator_count,
+            accelerator_type=accelerator_type,
+            boot_disk_type=boot_disk_type,
+            boot_disk_size_gb=boot_disk_size_gb,
+            reduction_server_replica_count=reduction_server_replica_count,
+            reduction_server_machine_type=reduction_server_machine_type,
+            tpu_topology=tpu_topology,
+        ).pool_specs
+    )
 
-        managed_model = self._managed_model
-        if model_display_name:
-            utils.validate_display_name(model_display_name)
-            managed_model.display_name = model_display_name
-            if model_labels:
-                utils.validate_labels(model_labels)
-                managed_model.labels = model_labels
-            else:
-                managed_model.labels = self._labels
-            managed_model.explanation_spec = (
-                _explanation_utils.create_and_validate_explanation_spec(
-                    explanation_metadata=self._explanation_metadata,
-                    explanation_parameters=self._explanation_parameters,
-                )
-            )
-        else:
-            managed_model = None
+    managed_model = self._managed_model
+    if model_display_name:
+      utils.validate_display_name(model_display_name)
+      managed_model.display_name = model_display_name
+      if model_labels:
+        utils.validate_labels(model_labels)
+        managed_model.labels = model_labels
+      else:
+        managed_model.labels = self._labels
+      managed_model.explanation_spec = (
+          _explanation_utils.create_and_validate_explanation_spec(
+              explanation_metadata=self._explanation_metadata,
+              explanation_parameters=self._explanation_parameters,
+          )
+      )
+    else:
+      managed_model = None
 
-        return worker_pool_specs, managed_model
+    return worker_pool_specs, managed_model
 
-    def _prepare_training_task_inputs_and_output_dir(
+  def _prepare_training_task_inputs_and_output_dir(
         self,
         worker_pool_specs: worker_spec_utils._DistributedTrainingSpec,
         base_output_dir: Optional[str] = None,
@@ -1491,7 +1487,7 @@ class _CustomTrainingJob(_TrainingJob):
         disable_retries: bool = False,
         persistent_resource_id: Optional[str] = None,
     ) -> Tuple[Dict, str]:
-        """Prepares training task inputs and output directory for custom job.
+    """Prepares training task inputs and output directory for custom job.
 
         Args:
             worker_pools_spec (worker_spec_utils._DistributedTrainingSpec):
@@ -1552,69 +1548,69 @@ class _CustomTrainingJob(_TrainingJob):
             Training task inputs and Output directory for custom job.
         """
 
-        # default directory if not given
-        base_output_dir = base_output_dir or _timestamped_gcs_dir(
+    # default directory if not given
+    base_output_dir = base_output_dir or _timestamped_gcs_dir(
             self._staging_bucket, "aiplatform-custom-training"
         )
 
-        _LOGGER.info("Training Output directory:\n%s " % base_output_dir)
+    _LOGGER.info("Training Output directory:\n%s " % base_output_dir)
 
-        training_task_inputs = {
+    training_task_inputs = {
             "worker_pool_specs": worker_pool_specs,
             "base_output_directory": {"output_uri_prefix": base_output_dir},
         }
 
-        if service_account:
-            training_task_inputs["service_account"] = service_account
-        if network:
-            training_task_inputs["network"] = network
-        if tensorboard:
-            training_task_inputs["tensorboard"] = tensorboard
-        if enable_web_access:
-            training_task_inputs["enable_web_access"] = enable_web_access
-        if enable_dashboard_access:
-            training_task_inputs["enable_dashboard_access"] = enable_dashboard_access
-        if persistent_resource_id:
-            training_task_inputs["persistent_resource_id"] = persistent_resource_id
+    if service_account:
+      training_task_inputs["service_account"] = service_account
+    if network:
+      training_task_inputs["network"] = network
+    if tensorboard:
+      training_task_inputs["tensorboard"] = tensorboard
+    if enable_web_access:
+      training_task_inputs["enable_web_access"] = enable_web_access
+    if enable_dashboard_access:
+      training_task_inputs["enable_dashboard_access"] = enable_dashboard_access
+    if persistent_resource_id:
+      training_task_inputs["persistent_resource_id"] = persistent_resource_id
 
-        if timeout or restart_job_on_worker_restart or disable_retries:
-            timeout = f"{timeout}s" if timeout else None
-            scheduling = {
+    if timeout or restart_job_on_worker_restart or disable_retries:
+      timeout = f"{timeout}s" if timeout else None
+      scheduling = {
                 "timeout": timeout,
                 "restart_job_on_worker_restart": restart_job_on_worker_restart,
                 "disable_retries": disable_retries,
             }
-            training_task_inputs["scheduling"] = scheduling
+      training_task_inputs["scheduling"] = scheduling
 
-        return training_task_inputs, base_output_dir
+    return training_task_inputs, base_output_dir
 
-    @property
-    def web_access_uris(self) -> Dict[str, str]:
-        """Get the web access uris of the backing custom job.
+  @property
+  def web_access_uris(self) -> Dict[str, str]:
+    """Get the web access uris of the backing custom job.
 
         Returns:
             (Dict[str, str]):
                 Web access uris of the backing custom job.
         """
-        web_access_uris = dict()
-        if (
+    web_access_uris = dict()
+    if (
             self._gca_resource.training_task_metadata
             and self._gca_resource.training_task_metadata.get("backingCustomJob")
         ):
-            custom_job_resource_name = self._gca_resource.training_task_metadata.get(
+      custom_job_resource_name = self._gca_resource.training_task_metadata.get(
                 "backingCustomJob"
             )
-            custom_job = jobs.CustomJob.get(resource_name=custom_job_resource_name)
+      custom_job = jobs.CustomJob.get(resource_name=custom_job_resource_name)
 
-            web_access_uris = dict(custom_job.web_access_uris)
+      web_access_uris = dict(custom_job.web_access_uris)
 
-        return web_access_uris
+    return web_access_uris
 
-    def _log_web_access_uris(self):
-        """Helper method to log the web access uris of the backing custom job"""
-        for worker, uri in self.web_access_uris.items():
-            if uri not in self._logged_web_access_uris:
-                _LOGGER.info(
+  def _log_web_access_uris(self):
+    """Helper method to log the web access uris of the backing custom job"""
+    for worker, uri in self.web_access_uris.items():
+      if uri not in self._logged_web_access_uris:
+        _LOGGER.info(
                     "%s %s access the interactive shell terminals for the backing custom job:\n%s:\n%s"
                     % (
                         self.__class__.__name__,
@@ -1623,49 +1619,49 @@ class _CustomTrainingJob(_TrainingJob):
                         uri,
                     ),
                 )
-                self._logged_web_access_uris.add(uri)
+        self._logged_web_access_uris.add(uri)
 
-    def _wait_callback(self):
-        if (
+  def _wait_callback(self):
+    if (
             self._gca_resource.training_task_metadata
             and self._gca_resource.training_task_metadata.get("backingCustomJob")
             and not self._has_logged_custom_job
         ):
-            _LOGGER.info(f"View backing custom job:\n{self._custom_job_console_uri()}")
+      _LOGGER.info(f"View backing custom job:\n{self._custom_job_console_uri()}")
 
-            if self._gca_resource.training_task_inputs.get("tensorboard"):
-                _LOGGER.info(f"View tensorboard:\n{self._tensorboard_console_uri()}")
+      if self._gca_resource.training_task_inputs.get("tensorboard"):
+        _LOGGER.info(f"View tensorboard:\n{self._tensorboard_console_uri()}")
 
-            self._has_logged_custom_job = True
+      self._has_logged_custom_job = True
 
-        if self._gca_resource.training_task_inputs.get(
+    if self._gca_resource.training_task_inputs.get(
             "enable_web_access"
         ) or self._gca_resource.training_task_inputs.get("enable_dashboard_access"):
-            self._log_web_access_uris()
+      self._log_web_access_uris()
 
-    def _custom_job_console_uri(self) -> str:
-        """Helper method to compose the dashboard uri where custom job can be viewed."""
-        custom_job_resource_name = self._gca_resource.training_task_metadata.get(
+  def _custom_job_console_uri(self) -> str:
+    """Helper method to compose the dashboard uri where custom job can be viewed."""
+    custom_job_resource_name = self._gca_resource.training_task_metadata.get(
             "backingCustomJob"
         )
-        return console_utils.custom_job_console_uri(custom_job_resource_name)
+    return console_utils.custom_job_console_uri(custom_job_resource_name)
 
-    def _tensorboard_console_uri(self) -> str:
-        """Helper method to compose dashboard uri where tensorboard can be viewed."""
-        tensorboard_resource_name = self._gca_resource.training_task_inputs.get(
+  def _tensorboard_console_uri(self) -> str:
+    """Helper method to compose dashboard uri where tensorboard can be viewed."""
+    tensorboard_resource_name = self._gca_resource.training_task_inputs.get(
             "tensorboard"
         )
-        custom_job_resource_name = self._gca_resource.training_task_metadata.get(
+    custom_job_resource_name = self._gca_resource.training_task_metadata.get(
             "backingCustomJob"
         )
-        return console_utils.custom_job_tensorboard_console_uri(
+    return console_utils.custom_job_tensorboard_console_uri(
             tensorboard_resource_name, custom_job_resource_name
         )
 
-    @property
-    def _model_upload_fail_string(self) -> str:
-        """Helper property for model upload failure."""
-        return (
+  @property
+  def _model_upload_fail_string(self) -> str:
+    """Helper property for model upload failure."""
+    return (
             f"Training Pipeline {self.resource_name} is not configured to upload a "
             "Model. Create the Training Pipeline with "
             "model_serving_container_image_uri and model_display_name passed in. "
@@ -2676,13 +2672,13 @@ class _ForecastingTrainingJob(_TrainingJob):
 
 # TODO(b/172368325) add scheduling, custom_job.Scheduling
 class CustomTrainingJob(_CustomTrainingJob):
-    """Class to launch a Custom Training Job in Vertex AI using a script.
+  """Class to launch a Custom Training Job in Vertex AI using a script.
 
     Takes a training implementation as a python script and executes that
     script in Cloud Vertex AI Training.
     """
 
-    def __init__(
+  def __init__(
         self,
         # TODO(b/223262536): Make display_name parameter fully optional in next major release
         display_name: str,
@@ -2710,7 +2706,7 @@ class CustomTrainingJob(_CustomTrainingJob):
         model_encryption_spec_key_name: Optional[str] = None,
         staging_bucket: Optional[str] = None,
     ):
-        """Constructs a Custom Training Job from a Python script.
+    """Constructs a Custom Training Job from a Python script.
 
         job = aiplatform.CustomTrainingJob(
             display_name='test-train',
@@ -2894,9 +2890,9 @@ class CustomTrainingJob(_CustomTrainingJob):
                 Bucket used to stage source and training artifacts. Overrides
                 staging_bucket set in aiplatform.init.
         """
-        if not display_name:
-            display_name = self.__class__._generate_display_name()
-        super().__init__(
+    if not display_name:
+      display_name = self.__class__._generate_display_name()
+    super().__init__(
             display_name=display_name,
             project=project,
             location=location,
@@ -2921,380 +2917,334 @@ class CustomTrainingJob(_CustomTrainingJob):
             staging_bucket=staging_bucket,
         )
 
-        self._requirements = requirements
-        self._script_path = script_path
+    self._requirements = requirements
+    self._script_path = script_path
 
-    def run(
-        self,
-        dataset: Optional[
-            Union[
-                datasets.ImageDataset,
-                datasets.TabularDataset,
-                datasets.TextDataset,
-                datasets.VideoDataset,
-            ]
-        ] = None,
-        annotation_schema_uri: Optional[str] = None,
-        model_display_name: Optional[str] = None,
-        model_labels: Optional[Dict[str, str]] = None,
-        model_id: Optional[str] = None,
-        parent_model: Optional[str] = None,
-        is_default_version: Optional[bool] = True,
-        model_version_aliases: Optional[Sequence[str]] = None,
-        model_version_description: Optional[str] = None,
-        base_output_dir: Optional[str] = None,
-        service_account: Optional[str] = None,
-        network: Optional[str] = None,
-        bigquery_destination: Optional[str] = None,
-        args: Optional[List[Union[str, float, int]]] = None,
-        environment_variables: Optional[Dict[str, str]] = None,
-        replica_count: int = 1,
-        machine_type: str = "n1-standard-4",
-        accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
-        accelerator_count: int = 0,
-        boot_disk_type: str = "pd-ssd",
-        boot_disk_size_gb: int = 100,
-        reduction_server_replica_count: int = 0,
-        reduction_server_machine_type: Optional[str] = None,
-        reduction_server_container_uri: Optional[str] = None,
-        training_fraction_split: Optional[float] = None,
-        validation_fraction_split: Optional[float] = None,
-        test_fraction_split: Optional[float] = None,
-        training_filter_split: Optional[str] = None,
-        validation_filter_split: Optional[str] = None,
-        test_filter_split: Optional[str] = None,
-        predefined_split_column_name: Optional[str] = None,
-        timestamp_split_column_name: Optional[str] = None,
-        timeout: Optional[int] = None,
-        restart_job_on_worker_restart: bool = False,
-        enable_web_access: bool = False,
-        enable_dashboard_access: bool = False,
-        tensorboard: Optional[str] = None,
-        sync=True,
-        create_request_timeout: Optional[float] = None,
-        disable_retries: bool = False,
-        persistent_resource_id: Optional[str] = None,
-    ) -> Optional[models.Model]:
-        """Runs the custom training job.
+  def run(
+      self,
+      dataset: Optional[
+          Union[
+              datasets.ImageDataset,
+              datasets.TabularDataset,
+              datasets.TextDataset,
+              datasets.VideoDataset,
+          ]
+      ] = None,
+      annotation_schema_uri: Optional[str] = None,
+      model_display_name: Optional[str] = None,
+      model_labels: Optional[Dict[str, str]] = None,
+      model_id: Optional[str] = None,
+      parent_model: Optional[str] = None,
+      is_default_version: Optional[bool] = True,
+      model_version_aliases: Optional[Sequence[str]] = None,
+      model_version_description: Optional[str] = None,
+      base_output_dir: Optional[str] = None,
+      service_account: Optional[str] = None,
+      network: Optional[str] = None,
+      bigquery_destination: Optional[str] = None,
+      args: Optional[List[Union[str, float, int]]] = None,
+      environment_variables: Optional[Dict[str, str]] = None,
+      replica_count: int = 1,
+      machine_type: str = "n1-standard-4",
+      accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
+      accelerator_count: int = 0,
+      boot_disk_type: str = "pd-ssd",
+      boot_disk_size_gb: int = 100,
+      reduction_server_replica_count: int = 0,
+      reduction_server_machine_type: Optional[str] = None,
+      reduction_server_container_uri: Optional[str] = None,
+      training_fraction_split: Optional[float] = None,
+      validation_fraction_split: Optional[float] = None,
+      test_fraction_split: Optional[float] = None,
+      training_filter_split: Optional[str] = None,
+      validation_filter_split: Optional[str] = None,
+      test_filter_split: Optional[str] = None,
+      predefined_split_column_name: Optional[str] = None,
+      timestamp_split_column_name: Optional[str] = None,
+      timeout: Optional[int] = None,
+      restart_job_on_worker_restart: bool = False,
+      enable_web_access: bool = False,
+      enable_dashboard_access: bool = False,
+      tensorboard: Optional[str] = None,
+      sync=True,
+      create_request_timeout: Optional[float] = None,
+      disable_retries: bool = False,
+      persistent_resource_id: Optional[str] = None,
+      tpu_topology: Optional[str] = None,
+  ) -> Optional[models.Model]:
+    """Runs the custom training job.
 
-        Distributed Training Support:
-        If replica count = 1 then one chief replica will be provisioned. If
-        replica_count > 1 the remainder will be provisioned as a worker replica pool.
-        ie: replica_count = 10 will result in 1 chief and 9 workers
-        All replicas have same machine_type, accelerator_type, and accelerator_count
+    Distributed Training Support:
+    If replica count = 1 then one chief replica will be provisioned. If
+    replica_count > 1 the remainder will be provisioned as a worker replica
+    pool.
+    ie: replica_count = 10 will result in 1 chief and 9 workers
+    All replicas have same machine_type, accelerator_type, and accelerator_count
 
-        If training on a Vertex AI dataset, you can use one of the following split configurations:
-            Data fraction splits:
-            Any of ``training_fraction_split``, ``validation_fraction_split`` and
-            ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
-            the provided ones sum to less than 1, the remainder is assigned to sets as
-            decided by Vertex AI. If none of the fractions are set, by default roughly 80%
-            of data will be used for training, 10% for validation, and 10% for test.
+    If training on a Vertex AI dataset, you can use one of the following split
+    configurations:
+        Data fraction splits:
+        Any of ``training_fraction_split``, ``validation_fraction_split`` and
+        ``test_fraction_split`` may optionally be provided, they must sum to up
+        to 1. If
+        the provided ones sum to less than 1, the remainder is assigned to sets
+        as
+        decided by Vertex AI. If none of the fractions are set, by default
+        roughly 80%
+        of data will be used for training, 10% for validation, and 10% for test.
 
-            Data filter splits:
-            Assigns input data to training, validation, and test sets
-            based on the given filters, data pieces not matched by any
-            filter are ignored. Currently only supported for Datasets
-            containing DataItems.
-            If any of the filters in this message are to match nothing, then
-            they can be set as '-' (the minus sign).
-            If using filter splits, all of ``training_filter_split``, ``validation_filter_split`` and
-            ``test_filter_split`` must be provided.
-            Supported only for unstructured Datasets.
+        Data filter splits:
+        Assigns input data to training, validation, and test sets
+        based on the given filters, data pieces not matched by any
+        filter are ignored. Currently only supported for Datasets
+        containing DataItems.
+        If any of the filters in this message are to match nothing, then
+        they can be set as '-' (the minus sign).
+        If using filter splits, all of ``training_filter_split``,
+        ``validation_filter_split`` and
+        ``test_filter_split`` must be provided.
+        Supported only for unstructured Datasets.
 
-            Predefined splits:
-            Assigns input data to training, validation, and test sets based on the value of a provided key.
-            If using predefined splits, ``predefined_split_column_name`` must be provided.
-            Supported only for tabular Datasets.
+        Predefined splits:
+        Assigns input data to training, validation, and test sets based on the
+        value of a provided key.
+        If using predefined splits, ``predefined_split_column_name`` must be
+        provided.
+        Supported only for tabular Datasets.
 
-            Timestamp splits:
-            Assigns input data to training, validation, and test sets
-            based on a provided timestamps. The youngest data pieces are
-            assigned to training set, next to validation set, and the oldest
-            to the test set.
-            Supported only for tabular Datasets.
+        Timestamp splits:
+        Assigns input data to training, validation, and test sets
+        based on a provided timestamps. The youngest data pieces are
+        assigned to training set, next to validation set, and the oldest
+        to the test set.
+        Supported only for tabular Datasets.
 
-        Args:
-            dataset (
-                Union[
-                    datasets.ImageDataset,
-                    datasets.TabularDataset,
-                    datasets.TextDataset,
-                    datasets.VideoDataset,
-                ]
-            ):
-                Vertex AI to fit this training against. Custom training script should
-                retrieve datasets through passed in environment variables uris:
+    Args: dataset ( Union[ datasets.ImageDataset, datasets.TabularDataset,
+    datasets.TextDataset, datasets.VideoDataset, ] ): Vertex AI to fit this
+    training against. Custom training script should retrieve datasets through
+    passed in environment variables uris:  os.environ["AIP_TRAINING_DATA_URI"]
+    os.environ["AIP_VALIDATION_DATA_URI"] os.environ["AIP_TEST_DATA_URI"]
+    Additionally the dataset format is passed in as:
+    os.environ["AIP_DATA_FORMAT"]
+        annotation_schema_uri (str): Google Cloud Storage URI points to a YAML
+        file describing annotation schema. The schema is defined as an OpenAPI
+        3.0.2 [Schema
+        Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#schema-object)
+        The schema files that can be used here are found in
+            gs://google-cloud-aiplatform/schema/dataset/annotation/, note that
+            the chosen schema must be consistent with ``metadata`` of the
+            Dataset specified by ``dataset_id``.  Only Annotations that both
+            match this schema and belong to DataItems not ignored by the split
+            method are used in respectively training, validation or test role,
+            depending on the role of the DataItem they are on.  When used in
+            conjunction with ``annotations_filter``, the Annotations used for
+            training are filtered by both ``annotations_filter`` and
+            ``annotation_schema_uri``.
+        model_display_name (str): If the script produces a managed Vertex AI
+        Model. The display name of the Model. The name can be up to 128
+        characters long and can be consist of any UTF-8 characters.  If not
+        provided upon creation, the job's display_name is used.
+        model_labels (Dict[str, str]): Optional. The labels with user-defined
+        metadata to organize your Models. Label keys and values can be no longer
+        than 64 characters (Unicode codepoints), can only contain lowercase
+        letters, numeric characters, underscores and dashes. International
+        characters are allowed. See https://goo.gl/xmQnxf for more information
+        and examples of labels.
+        model_id (str): Optional. The ID to use for the Model produced by this
+        job, which will become the final component of the model resource name.
+        This value may be up to 63 characters, and valid characters are
+        `[a-z0-9_-]`. The first character cannot be a number or hyphen.
+        parent_model (str): Optional. The resource name or model ID of an
+        existing model. The new model uploaded by this job will be a version of
+        `parent_model`.  Only set this field when training a new version of an
+        existing model.
+        is_default_version (bool): Optional. When set to True, the newly
+        uploaded model version will automatically have alias "default" included.
+        Subsequent uses of the model produced by this job without a version
+        specified will use this "default" version.  When set to False, the
+        "default" alias will not be moved. Actions targeting the model version
+        produced by this job will need to specifically reference this version by
+        ID or alias.  New model uploads, i.e. version 1, will always be
+        "default" aliased.
+        model_version_aliases (Sequence[str]): Optional. User provided version
+        aliases so that the model version uploaded by this job can be referenced
+        via alias instead of auto-generated version ID. A default version alias
+        will be created for the first version of the model.  The format is
+        [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
+        model_version_description (str): Optional. The description of the model
+        version being uploaded by this job.
+        base_output_dir (str): GCS output directory of job. If not provided a
+        timestamped directory in the staging directory will be used.  Vertex AI
+        sets the following environment variables when it runs your training
+        code:  -  AIP_MODEL_DIR: a Cloud Storage URI of a directory intended for
+        saving model artifacts, i.e. <base_output_dir>/model/ -
+        AIP_CHECKPOINT_DIR: a Cloud Storage URI of a directory intended for
+        saving checkpoints, i.e. <base_output_dir>/checkpoints/ -
+        AIP_TENSORBOARD_LOG_DIR: a Cloud Storage URI of a directory intended for
+        saving TensorBoard logs, i.e. <base_output_dir>/logs/
+        service_account (str): Specifies the service account for workload run-as
+        account. Users submitting jobs must have act-as permission on this
+        run-as account.
+        network (str): The full name of the Compute Engine network to which the
+        job should be peered. For example, projects/12345/global/networks/myVPC.
+        Private services access must already be configured for the network. If
+        left unspecified, the network set in aiplatform.init will be used.
+        Otherwise, the job is not peered with any network.
+        bigquery_destination (str): Provide this field if `dataset` is a
+        BigQuery dataset. The BigQuery project location where the training data
+        is to be written to. In the given project a new dataset is created with
+        name
+        ``dataset_<dataset-id>_<annotation-type>_<timestamp-of-training-call>``
+        where timestamp is in YYYY_MM_DDThh_mm_ss_sssZ format. All training
+        input data will be written into that dataset. In the dataset three
+        tables will be created, ``training``, ``validation`` and ``test``.  -
+        AIP_DATA_FORMAT = "bigquery". -  AIP_TRAINING_DATA_URI
+        ="bigquery_destination.dataset_*.training" -  AIP_VALIDATION_DATA_URI =
+        "bigquery_destination.dataset_*.validation" -  AIP_TEST_DATA_URI =
+        "bigquery_destination.dataset_*.test"
+        args (List[Unions[str, int, float]]): Command line arguments to be
+        passed to the Python script.
+        environment_variables (Dict[str, str]): Environment variables to be
+        passed to the container. Should be a dictionary where keys are
+        environment variable names and values are environment variable values
+        for those names. At most 10 environment variables can be specified. The
+        Name of the environment variable must be unique.  environment_variables
+        = { 'MY_KEY': 'MY_VALUE' }
+        replica_count (int): The number of worker replicas. If replica count = 1
+        then one chief replica will be provisioned. If replica_count > 1 the
+        remainder will be provisioned as a worker replica pool.
+        machine_type (str): The type of machine to use for training.
+        accelerator_type (str): Hardware accelerator type. One of
+        ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100,
+        NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4, TPU_V2, TPU_V3
+        accelerator_count (int): The number of accelerators to attach to a
+        worker replica.
+        boot_disk_type (str): Type of the boot disk, default is `pd-ssd`. Valid
+        values: `pd-ssd` (Persistent Disk Solid State Drive) or `pd-standard`
+        (Persistent Disk Hard Disk Drive).
+        boot_disk_size_gb (int): Size in GB of the boot disk, default is 100GB.
+        boot disk size must be within the range of [100, 64000].
+        reduction_server_replica_count (int): The number of reduction server
+        replicas, default is 0.
+        reduction_server_machine_type (str): Optional. The type of machine to
+        use for reduction server.
+        reduction_server_container_uri (str): Optional. The Uri of the reduction
+        server container image. See details:
+        https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
+        training_fraction_split (float): Optional. The fraction of the input
+        data that is to be used to train the Model. This is ignored if Dataset
+        is not provided.
+        validation_fraction_split (float): Optional. The fraction of the input
+        data that is to be used to validate the Model. This is ignored if
+        Dataset is not provided.
+        test_fraction_split (float): Optional. The fraction of the input data
+        that is to be used to evaluate the Model. This is ignored if Dataset is
+        not provided.
+        training_filter_split (str): Optional. A filter on DataItems of the
+        Dataset. DataItems that match this filter are used to train the Model. A
+        filter with same syntax as the one used in DatasetService.ListDataItems
+        may be used. If a single DataItem is matched by more than one of the
+        FilterSplit filters, then it is assigned to the first set that applies
+        to it in the training, validation, test order. This is ignored if
+        Dataset is not provided.
+        validation_filter_split (str): Optional. A filter on DataItems of the
+        Dataset. DataItems that match this filter are used to validate the
+        Model. A filter with same syntax as the one used in
+        DatasetService.ListDataItems may be used. If a single DataItem is
+        matched by more than one of the FilterSplit filters, then it is assigned
+        to the first set that applies to it in the training, validation, test
+        order. This is ignored if Dataset is not provided.
+        test_filter_split (str): Optional. A filter on DataItems of the Dataset.
+        DataItems that match this filter are used to test the Model. A filter
+        with same syntax as the one used in DatasetService.ListDataItems may be
+        used. If a single DataItem is matched by more than one of the
+        FilterSplit filters, then it is assigned to the first set that applies
+        to it in the training, validation, test order. This is ignored if
+        Dataset is not provided.
+        predefined_split_column_name (str): Optional. The key is a name of one
+        of the Dataset's data columns. The value of the key (either the label's
+        value or value in the column) must be one of {``training``,
+        ``validation``, ``test``}, and it defines to which set the given piece
+        of data is assigned. If for a piece of data the key is not present or
+        has an invalid value, that piece is ignored by the pipeline.  Supported
+        only for tabular and time series Datasets.
+        timestamp_split_column_name (str): Optional. The key is a name of one of
+        the Dataset's data columns. The value of the key values of the key (the
+        values in the column) must be in RFC 3339 `date-time` format, where
+        `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a piece of
+        data the key is not present or has an invalid value, that piece is
+        ignored by the pipeline.  Supported only for tabular and time series
+        Datasets.
+        timeout (int): The maximum job running time in seconds. The default is 7
+        days.
+        restart_job_on_worker_restart (bool): Restarts the entire CustomJob if a
+        worker gets restarted. This feature can be used by distributed training
+        jobs that are not resilient to workers leaving and joining a job.
+        enable_web_access (bool): Whether you want Vertex AI to enable
+        interactive shell access to training containers.
+            https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell
+        enable_dashboard_access (bool): Whether you want Vertex AI to enable
+        access to the customized dashboard to training containers.
+        tensorboard (str): Optional. The name of a Vertex AI
+        [Tensorboard][google.cloud.aiplatform.v1beta1.Tensorboard] resource to
+        which this CustomJob will upload Tensorboard logs. Format:
+        ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
+        The training script should write Tensorboard to following Vertex AI
+        environment
+            variable:  AIP_TENSORBOARD_LOG_DIR  `service_account` is required
+            with provided `tensorboard`. For more information on configuring
+            your service account please visit:
+            https://cloud.google.com/vertex-ai/docs/experiments/tensorboard-training
+        create_request_timeout (float): Optional. The timeout for the create
+        request in seconds.
+        sync (bool): Whether to execute this method synchronously. If False,
+        this method will be executed in concurrent Future and any downstream
+        object will be immediately returned and synced when the Future has
+        completed.
+        disable_retries (bool): Indicates if the job should retry for internal
+        errors after the job starts running. If True, overrides
+        `restart_job_on_worker_restart` to False.
+        persistent_resource_id (str): Optional. The ID of the PersistentResource
+        in the same Project and Location. If this is specified, the job will be
+        run on existing machines held by the PersistentResource instead of
+        on-demand short-live machines. The network, CMEK, and node pool configs
+        on the job should be consistent with those on the PersistentResource,
+        otherwise, the job will be rejected.
+        tpu_topology (str): Optional. Specifies the tpu topology to be used for
+        TPU training job. This field is required for TPU v5 versions. For
+        details on the TPU topology, refer to
+        https://cloud.google.com/tpu/docs/v5e#tpu-v5e-config. The topology must
+        be a supported value for the TPU machine type.
 
-                os.environ["AIP_TRAINING_DATA_URI"]
-                os.environ["AIP_VALIDATION_DATA_URI"]
-                os.environ["AIP_TEST_DATA_URI"]
+    Returns:
+        model: The trained Vertex AI Model resource or None if training did not
+            produce a Vertex AI Model.
+    """
+    network = network or initializer.global_config.network
+    service_account = (
+        service_account or initializer.global_config.service_account
+    )
 
-                Additionally the dataset format is passed in as:
+    worker_pool_specs, managed_model = self._prepare_and_validate_run(
+        model_display_name=model_display_name,
+        model_labels=model_labels,
+        replica_count=replica_count,
+        machine_type=machine_type,
+        accelerator_count=accelerator_count,
+        accelerator_type=accelerator_type,
+        boot_disk_type=boot_disk_type,
+        boot_disk_size_gb=boot_disk_size_gb,
+        reduction_server_replica_count=reduction_server_replica_count,
+        reduction_server_machine_type=reduction_server_machine_type,
+        tpu_topology=tpu_topology,
+    )
 
-                os.environ["AIP_DATA_FORMAT"]
-            annotation_schema_uri (str):
-                Google Cloud Storage URI points to a YAML file describing
-                annotation schema. The schema is defined as an OpenAPI 3.0.2
-                [Schema Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#schema-object) The schema files
-                that can be used here are found in
-                gs://google-cloud-aiplatform/schema/dataset/annotation/,
-                note that the chosen schema must be consistent with
-                ``metadata``
-                of the Dataset specified by
-                ``dataset_id``.
+    # make and copy package
+    python_packager = source_utils._TrainingScriptPythonPackager(
+        script_path=self._script_path, requirements=self._requirements
+    )
 
-                Only Annotations that both match this schema and belong to
-                DataItems not ignored by the split method are used in
-                respectively training, validation or test role, depending on
-                the role of the DataItem they are on.
-
-                When used in conjunction with
-                ``annotations_filter``,
-                the Annotations used for training are filtered by both
-                ``annotations_filter``
-                and
-                ``annotation_schema_uri``.
-            model_display_name (str):
-                If the script produces a managed Vertex AI Model. The display name of
-                the Model. The name can be up to 128 characters long and can be consist
-                of any UTF-8 characters.
-
-                If not provided upon creation, the job's display_name is used.
-            model_labels (Dict[str, str]):
-                Optional. The labels with user-defined metadata to
-                organize your Models.
-                Label keys and values can be no longer than 64
-                characters (Unicode codepoints), can only
-                contain lowercase letters, numeric characters,
-                underscores and dashes. International characters
-                are allowed.
-                See https://goo.gl/xmQnxf for more information
-                and examples of labels.
-            model_id (str):
-                Optional. The ID to use for the Model produced by this job,
-                which will become the final component of the model resource name.
-                This value may be up to 63 characters, and valid characters
-                are `[a-z0-9_-]`. The first character cannot be a number or hyphen.
-            parent_model (str):
-                Optional. The resource name or model ID of an existing model.
-                The new model uploaded by this job will be a version of `parent_model`.
-
-                Only set this field when training a new version of an existing model.
-            is_default_version (bool):
-                Optional. When set to True, the newly uploaded model version will
-                automatically have alias "default" included. Subsequent uses of
-                the model produced by this job without a version specified will
-                use this "default" version.
-
-                When set to False, the "default" alias will not be moved.
-                Actions targeting the model version produced by this job will need
-                to specifically reference this version by ID or alias.
-
-                New model uploads, i.e. version 1, will always be "default" aliased.
-            model_version_aliases (Sequence[str]):
-                Optional. User provided version aliases so that the model version
-                uploaded by this job can be referenced via alias instead of
-                auto-generated version ID. A default version alias will be created
-                for the first version of the model.
-
-                The format is [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
-            model_version_description (str):
-               Optional. The description of the model version being uploaded by this job.
-            base_output_dir (str):
-                GCS output directory of job. If not provided a
-                timestamped directory in the staging directory will be used.
-
-                Vertex AI sets the following environment variables when it runs your training code:
-
-                -  AIP_MODEL_DIR: a Cloud Storage URI of a directory intended for saving model artifacts, i.e. <base_output_dir>/model/
-                -  AIP_CHECKPOINT_DIR: a Cloud Storage URI of a directory intended for saving checkpoints, i.e. <base_output_dir>/checkpoints/
-                -  AIP_TENSORBOARD_LOG_DIR: a Cloud Storage URI of a directory intended for saving TensorBoard logs, i.e. <base_output_dir>/logs/
-
-            service_account (str):
-                Specifies the service account for workload run-as account.
-                Users submitting jobs must have act-as permission on this run-as account.
-            network (str):
-                The full name of the Compute Engine network to which the job
-                should be peered. For example, projects/12345/global/networks/myVPC.
-                Private services access must already be configured for the network.
-                If left unspecified, the network set in aiplatform.init will be used.
-                Otherwise, the job is not peered with any network.
-            bigquery_destination (str):
-                Provide this field if `dataset` is a BigQuery dataset.
-                The BigQuery project location where the training data is to
-                be written to. In the given project a new dataset is created
-                with name
-                ``dataset_<dataset-id>_<annotation-type>_<timestamp-of-training-call>``
-                where timestamp is in YYYY_MM_DDThh_mm_ss_sssZ format. All
-                training input data will be written into that dataset. In
-                the dataset three tables will be created, ``training``,
-                ``validation`` and ``test``.
-
-                -  AIP_DATA_FORMAT = "bigquery".
-                -  AIP_TRAINING_DATA_URI ="bigquery_destination.dataset_*.training"
-                -  AIP_VALIDATION_DATA_URI = "bigquery_destination.dataset_*.validation"
-                -  AIP_TEST_DATA_URI = "bigquery_destination.dataset_*.test"
-            args (List[Unions[str, int, float]]):
-                Command line arguments to be passed to the Python script.
-            environment_variables (Dict[str, str]):
-                Environment variables to be passed to the container.
-                Should be a dictionary where keys are environment variable names
-                and values are environment variable values for those names.
-                At most 10 environment variables can be specified.
-                The Name of the environment variable must be unique.
-
-                environment_variables = {
-                    'MY_KEY': 'MY_VALUE'
-                }
-            replica_count (int):
-                The number of worker replicas. If replica count = 1 then one chief
-                replica will be provisioned. If replica_count > 1 the remainder will be
-                provisioned as a worker replica pool.
-            machine_type (str):
-                The type of machine to use for training.
-            accelerator_type (str):
-                Hardware accelerator type. One of ACCELERATOR_TYPE_UNSPECIFIED,
-                NVIDIA_TESLA_K80, NVIDIA_TESLA_P100, NVIDIA_TESLA_V100, NVIDIA_TESLA_P4,
-                NVIDIA_TESLA_T4
-            accelerator_count (int):
-                The number of accelerators to attach to a worker replica.
-            boot_disk_type (str):
-                Type of the boot disk, default is `pd-ssd`.
-                Valid values: `pd-ssd` (Persistent Disk Solid State Drive) or
-                `pd-standard` (Persistent Disk Hard Disk Drive).
-            boot_disk_size_gb (int):
-                Size in GB of the boot disk, default is 100GB.
-                boot disk size must be within the range of [100, 64000].
-            reduction_server_replica_count (int):
-                The number of reduction server replicas, default is 0.
-            reduction_server_machine_type (str):
-                Optional. The type of machine to use for reduction server.
-            reduction_server_container_uri (str):
-                Optional. The Uri of the reduction server container image.
-                See details: https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
-            training_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to train
-                the Model. This is ignored if Dataset is not provided.
-            validation_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to validate
-                the Model. This is ignored if Dataset is not provided.
-            test_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to evaluate
-                the Model. This is ignored if Dataset is not provided.
-            training_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to train the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            validation_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to validate the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            test_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to test the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            predefined_split_column_name (str):
-                Optional. The key is a name of one of the Dataset's data
-                columns. The value of the key (either the label's value or
-                value in the column) must be one of {``training``,
-                ``validation``, ``test``}, and it defines to which set the
-                given piece of data is assigned. If for a piece of data the
-                key is not present or has an invalid value, that piece is
-                ignored by the pipeline.
-
-                Supported only for tabular and time series Datasets.
-            timestamp_split_column_name (str):
-                Optional. The key is a name of one of the Dataset's data
-                columns. The value of the key values of the key (the values in
-                the column) must be in RFC 3339 `date-time` format, where
-                `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a
-                piece of data the key is not present or has an invalid value,
-                that piece is ignored by the pipeline.
-
-                Supported only for tabular and time series Datasets.
-            timeout (int):
-                The maximum job running time in seconds. The default is 7 days.
-            restart_job_on_worker_restart (bool):
-                Restarts the entire CustomJob if a worker
-                gets restarted. This feature can be used by
-                distributed training jobs that are not resilient
-                to workers leaving and joining a job.
-            enable_web_access (bool):
-                Whether you want Vertex AI to enable interactive shell access
-                to training containers.
-                https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell
-            enable_dashboard_access (bool):
-                Whether you want Vertex AI to enable access to the customized dashboard
-                to training containers.
-            tensorboard (str):
-                Optional. The name of a Vertex AI
-                [Tensorboard][google.cloud.aiplatform.v1beta1.Tensorboard]
-                resource to which this CustomJob will upload Tensorboard
-                logs. Format:
-                ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
-
-                The training script should write Tensorboard to following Vertex AI environment
-                variable:
-
-                AIP_TENSORBOARD_LOG_DIR
-
-                `service_account` is required with provided `tensorboard`.
-                For more information on configuring your service account please visit:
-                https://cloud.google.com/vertex-ai/docs/experiments/tensorboard-training
-            create_request_timeout (float):
-                Optional. The timeout for the create request in seconds.
-            sync (bool):
-                Whether to execute this method synchronously. If False, this method
-                will be executed in concurrent Future and any downstream object will
-                be immediately returned and synced when the Future has completed.
-            disable_retries (bool):
-                Indicates if the job should retry for internal errors after the
-                job starts running. If True, overrides
-                `restart_job_on_worker_restart` to False.
-            persistent_resource_id (str):
-                Optional. The ID of the PersistentResource in the same Project
-                and Location. If this is specified, the job will be run on
-                existing machines held by the PersistentResource instead of
-                on-demand short-live machines. The network, CMEK, and node pool
-                configs on the job should be consistent with those on the
-                PersistentResource, otherwise, the job will be rejected.
-
-        Returns:
-            model: The trained Vertex AI Model resource or None if training did not
-                produce a Vertex AI Model.
-        """
-        network = network or initializer.global_config.network
-        service_account = service_account or initializer.global_config.service_account
-
-        worker_pool_specs, managed_model = self._prepare_and_validate_run(
-            model_display_name=model_display_name,
-            model_labels=model_labels,
-            replica_count=replica_count,
-            machine_type=machine_type,
-            accelerator_count=accelerator_count,
-            accelerator_type=accelerator_type,
-            boot_disk_type=boot_disk_type,
-            boot_disk_size_gb=boot_disk_size_gb,
-            reduction_server_replica_count=reduction_server_replica_count,
-            reduction_server_machine_type=reduction_server_machine_type,
-        )
-
-        # make and copy package
-        python_packager = source_utils._TrainingScriptPythonPackager(
-            script_path=self._script_path, requirements=self._requirements
-        )
-
-        return self._run(
+    return self._run(
             python_packager=python_packager,
             dataset=dataset,
             annotation_schema_uri=annotation_schema_uri,
@@ -3333,376 +3283,328 @@ class CustomTrainingJob(_CustomTrainingJob):
             persistent_resource_id=persistent_resource_id,
         )
 
-    def submit(
-        self,
-        dataset: Optional[
-            Union[
-                datasets.ImageDataset,
-                datasets.TabularDataset,
-                datasets.TextDataset,
-                datasets.VideoDataset,
-            ]
-        ] = None,
-        annotation_schema_uri: Optional[str] = None,
-        model_display_name: Optional[str] = None,
-        model_labels: Optional[Dict[str, str]] = None,
-        model_id: Optional[str] = None,
-        parent_model: Optional[str] = None,
-        is_default_version: Optional[bool] = True,
-        model_version_aliases: Optional[Sequence[str]] = None,
-        model_version_description: Optional[str] = None,
-        base_output_dir: Optional[str] = None,
-        service_account: Optional[str] = None,
-        network: Optional[str] = None,
-        bigquery_destination: Optional[str] = None,
-        args: Optional[List[Union[str, float, int]]] = None,
-        environment_variables: Optional[Dict[str, str]] = None,
-        replica_count: int = 1,
-        machine_type: str = "n1-standard-4",
-        accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
-        accelerator_count: int = 0,
-        boot_disk_type: str = "pd-ssd",
-        boot_disk_size_gb: int = 100,
-        reduction_server_replica_count: int = 0,
-        reduction_server_machine_type: Optional[str] = None,
-        reduction_server_container_uri: Optional[str] = None,
-        training_fraction_split: Optional[float] = None,
-        validation_fraction_split: Optional[float] = None,
-        test_fraction_split: Optional[float] = None,
-        training_filter_split: Optional[str] = None,
-        validation_filter_split: Optional[str] = None,
-        test_filter_split: Optional[str] = None,
-        predefined_split_column_name: Optional[str] = None,
-        timestamp_split_column_name: Optional[str] = None,
-        timeout: Optional[int] = None,
-        restart_job_on_worker_restart: bool = False,
-        enable_web_access: bool = False,
-        enable_dashboard_access: bool = False,
-        tensorboard: Optional[str] = None,
-        sync=True,
-        create_request_timeout: Optional[float] = None,
-        disable_retries: bool = False,
-        persistent_resource_id: Optional[str] = None,
-    ) -> Optional[models.Model]:
-        """Submits the custom training job without blocking until completion.
+  def submit(
+      self,
+      dataset: Optional[
+          Union[
+              datasets.ImageDataset,
+              datasets.TabularDataset,
+              datasets.TextDataset,
+              datasets.VideoDataset,
+          ]
+      ] = None,
+      annotation_schema_uri: Optional[str] = None,
+      model_display_name: Optional[str] = None,
+      model_labels: Optional[Dict[str, str]] = None,
+      model_id: Optional[str] = None,
+      parent_model: Optional[str] = None,
+      is_default_version: Optional[bool] = True,
+      model_version_aliases: Optional[Sequence[str]] = None,
+      model_version_description: Optional[str] = None,
+      base_output_dir: Optional[str] = None,
+      service_account: Optional[str] = None,
+      network: Optional[str] = None,
+      bigquery_destination: Optional[str] = None,
+      args: Optional[List[Union[str, float, int]]] = None,
+      environment_variables: Optional[Dict[str, str]] = None,
+      replica_count: int = 1,
+      machine_type: str = "n1-standard-4",
+      accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
+      accelerator_count: int = 0,
+      boot_disk_type: str = "pd-ssd",
+      boot_disk_size_gb: int = 100,
+      reduction_server_replica_count: int = 0,
+      reduction_server_machine_type: Optional[str] = None,
+      reduction_server_container_uri: Optional[str] = None,
+      training_fraction_split: Optional[float] = None,
+      validation_fraction_split: Optional[float] = None,
+      test_fraction_split: Optional[float] = None,
+      training_filter_split: Optional[str] = None,
+      validation_filter_split: Optional[str] = None,
+      test_filter_split: Optional[str] = None,
+      predefined_split_column_name: Optional[str] = None,
+      timestamp_split_column_name: Optional[str] = None,
+      timeout: Optional[int] = None,
+      restart_job_on_worker_restart: bool = False,
+      enable_web_access: bool = False,
+      enable_dashboard_access: bool = False,
+      tensorboard: Optional[str] = None,
+      sync=True,
+      create_request_timeout: Optional[float] = None,
+      disable_retries: bool = False,
+      persistent_resource_id: Optional[str] = None,
+      tpu_topology: Optional[str] = None,
+  ) -> Optional[models.Model]:
+    """Submits the custom training job without blocking until completion.
 
-        Distributed Training Support:
-        If replica count = 1 then one chief replica will be provisioned. If
-        replica_count > 1 the remainder will be provisioned as a worker replica pool.
-        ie: replica_count = 10 will result in 1 chief and 9 workers
-        All replicas have same machine_type, accelerator_type, and accelerator_count
+    Distributed Training Support:
+    If replica count = 1 then one chief replica will be provisioned. If
+    replica_count > 1 the remainder will be provisioned as a worker replica
+    pool.
+    ie: replica_count = 10 will result in 1 chief and 9 workers
+    All replicas have same machine_type, accelerator_type, and accelerator_count
 
-        If training on a Vertex AI dataset, you can use one of the following split configurations:
-            Data fraction splits:
-            Any of ``training_fraction_split``, ``validation_fraction_split`` and
-            ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
-            the provided ones sum to less than 1, the remainder is assigned to sets as
-            decided by Vertex AI. If none of the fractions are set, by default roughly 80%
-            of data will be used for training, 10% for validation, and 10% for test.
+    If training on a Vertex AI dataset, you can use one of the following split
+    configurations:
+        Data fraction splits:
+        Any of ``training_fraction_split``, ``validation_fraction_split`` and
+        ``test_fraction_split`` may optionally be provided, they must sum to up
+        to 1. If
+        the provided ones sum to less than 1, the remainder is assigned to sets
+        as
+        decided by Vertex AI. If none of the fractions are set, by default
+        roughly 80%
+        of data will be used for training, 10% for validation, and 10% for test.
 
-            Data filter splits:
-            Assigns input data to training, validation, and test sets
-            based on the given filters, data pieces not matched by any
-            filter are ignored. Currently only supported for Datasets
-            containing DataItems.
-            If any of the filters in this message are to match nothing, then
-            they can be set as '-' (the minus sign).
-            If using filter splits, all of ``training_filter_split``, ``validation_filter_split`` and
-            ``test_filter_split`` must be provided.
-            Supported only for unstructured Datasets.
+        Data filter splits:
+        Assigns input data to training, validation, and test sets
+        based on the given filters, data pieces not matched by any
+        filter are ignored. Currently only supported for Datasets
+        containing DataItems.
+        If any of the filters in this message are to match nothing, then
+        they can be set as '-' (the minus sign).
+        If using filter splits, all of ``training_filter_split``,
+        ``validation_filter_split`` and
+        ``test_filter_split`` must be provided.
+        Supported only for unstructured Datasets.
 
-            Predefined splits:
-            Assigns input data to training, validation, and test sets based on the value of a provided key.
-            If using predefined splits, ``predefined_split_column_name`` must be provided.
-            Supported only for tabular Datasets.
+        Predefined splits:
+        Assigns input data to training, validation, and test sets based on the
+        value of a provided key.
+        If using predefined splits, ``predefined_split_column_name`` must be
+        provided.
+        Supported only for tabular Datasets.
 
-            Timestamp splits:
-            Assigns input data to training, validation, and test sets
-            based on a provided timestamps. The youngest data pieces are
-            assigned to training set, next to validation set, and the oldest
-            to the test set.
-            Supported only for tabular Datasets.
+        Timestamp splits:
+        Assigns input data to training, validation, and test sets
+        based on a provided timestamps. The youngest data pieces are
+        assigned to training set, next to validation set, and the oldest
+        to the test set.
+        Supported only for tabular Datasets.
 
-        Args:
-            dataset (
-                Union[
-                    datasets.ImageDataset,
-                    datasets.TabularDataset,
-                    datasets.TextDataset,
-                    datasets.VideoDataset,
-                ]
-            ):
-                Vertex AI to fit this training against. Custom training script should
-                retrieve datasets through passed in environment variables uris:
+    Args: dataset ( Union[ datasets.ImageDataset, datasets.TabularDataset,
+    datasets.TextDataset, datasets.VideoDataset, ] ): Vertex AI to fit this
+    training against. Custom training script should retrieve datasets through
+    passed in environment variables uris:  os.environ["AIP_TRAINING_DATA_URI"]
+    os.environ["AIP_VALIDATION_DATA_URI"] os.environ["AIP_TEST_DATA_URI"]
+    Additionally the dataset format is passed in as:
+    os.environ["AIP_DATA_FORMAT"]
+        annotation_schema_uri (str): Google Cloud Storage URI points to a YAML
+        file describing annotation schema. The schema is defined as an OpenAPI
+        3.0.2 [Schema
+        Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#schema-object)
+        The schema files that can be used here are found in
+            gs://google-cloud-aiplatform/schema/dataset/annotation/, note that
+            the chosen schema must be consistent with ``metadata`` of the
+            Dataset specified by ``dataset_id``.  Only Annotations that both
+            match this schema and belong to DataItems not ignored by the split
+            method are used in respectively training, validation or test role,
+            depending on the role of the DataItem they are on.  When used in
+            conjunction with ``annotations_filter``, the Annotations used for
+            training are filtered by both ``annotations_filter`` and
+            ``annotation_schema_uri``.
+        model_display_name (str): If the script produces a managed Vertex AI
+        Model. The display name of the Model. The name can be up to 128
+        characters long and can be consist of any UTF-8 characters.  If not
+        provided upon creation, the job's display_name is used.
+        model_labels (Dict[str, str]): Optional. The labels with user-defined
+        metadata to organize your Models. Label keys and values can be no longer
+        than 64 characters (Unicode codepoints), can only contain lowercase
+        letters, numeric characters, underscores and dashes. International
+        characters are allowed. See https://goo.gl/xmQnxf for more information
+        and examples of labels.
+        model_id (str): Optional. The ID to use for the Model produced by this
+        job, which will become the final component of the model resource name.
+        This value may be up to 63 characters, and valid characters are
+        `[a-z0-9_-]`. The first character cannot be a number or hyphen.
+        parent_model (str): Optional. The resource name or model ID of an
+        existing model. The new model uploaded by this job will be a version of
+        `parent_model`.  Only set this field when training a new version of an
+        existing model.
+        is_default_version (bool): Optional. When set to True, the newly
+        uploaded model version will automatically have alias "default" included.
+        Subsequent uses of the model produced by this job without a version
+        specified will use this "default" version.  When set to False, the
+        "default" alias will not be moved. Actions targeting the model version
+        produced by this job will need to specifically reference this version by
+        ID or alias.  New model uploads, i.e. version 1, will always be
+        "default" aliased.
+        model_version_aliases (Sequence[str]): Optional. User provided version
+        aliases so that the model version uploaded by this job can be referenced
+        via alias instead of auto-generated version ID. A default version alias
+        will be created for the first version of the model.  The format is
+        [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
+        model_version_description (str): Optional. The description of the model
+        version being uploaded by this job.
+        base_output_dir (str): GCS output directory of job. If not provided a
+        timestamped directory in the staging directory will be used.  Vertex AI
+        sets the following environment variables when it runs your training
+        code:  -  AIP_MODEL_DIR: a Cloud Storage URI of a directory intended for
+        saving model artifacts, i.e. <base_output_dir>/model/ -
+        AIP_CHECKPOINT_DIR: a Cloud Storage URI of a directory intended for
+        saving checkpoints, i.e. <base_output_dir>/checkpoints/ -
+        AIP_TENSORBOARD_LOG_DIR: a Cloud Storage URI of a directory intended for
+        saving TensorBoard logs, i.e. <base_output_dir>/logs/
+        service_account (str): Specifies the service account for workload run-as
+        account. Users submitting jobs must have act-as permission on this
+        run-as account.
+        network (str): The full name of the Compute Engine network to which the
+        job should be peered. For example, projects/12345/global/networks/myVPC.
+        Private services access must already be configured for the network. If
+        left unspecified, the network set in aiplatform.init will be used.
+        Otherwise, the job is not peered with any network.
+        bigquery_destination (str): Provide this field if `dataset` is a
+        BigQuery dataset. The BigQuery project location where the training data
+        is to be written to. In the given project a new dataset is created with
+        name
+        ``dataset_<dataset-id>_<annotation-type>_<timestamp-of-training-call>``
+        where timestamp is in YYYY_MM_DDThh_mm_ss_sssZ format. All training
+        input data will be written into that dataset. In the dataset three
+        tables will be created, ``training``, ``validation`` and ``test``.  -
+        AIP_DATA_FORMAT = "bigquery". -  AIP_TRAINING_DATA_URI
+        ="bigquery_destination.dataset_*.training" -  AIP_VALIDATION_DATA_URI =
+        "bigquery_destination.dataset_*.validation" -  AIP_TEST_DATA_URI =
+        "bigquery_destination.dataset_*.test"
+        args (List[Unions[str, int, float]]): Command line arguments to be
+        passed to the Python script.
+        environment_variables (Dict[str, str]): Environment variables to be
+        passed to the container. Should be a dictionary where keys are
+        environment variable names and values are environment variable values
+        for those names. At most 10 environment variables can be specified. The
+        Name of the environment variable must be unique.  environment_variables
+        = { 'MY_KEY': 'MY_VALUE' }
+        replica_count (int): The number of worker replicas. If replica count = 1
+        then one chief replica will be provisioned. If replica_count > 1 the
+        remainder will be provisioned as a worker replica pool.
+        machine_type (str): The type of machine to use for training.
+        accelerator_type (str): Hardware accelerator type. One of
+        ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100,
+        NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4, TPU_V2, TPU_V3
+        accelerator_count (int): The number of accelerators to attach to a
+        worker replica.
+        boot_disk_type (str): Type of the boot disk, default is `pd-ssd`. Valid
+        values: `pd-ssd` (Persistent Disk Solid State Drive) or `pd-standard`
+        (Persistent Disk Hard Disk Drive).
+        boot_disk_size_gb (int): Size in GB of the boot disk, default is 100GB.
+        boot disk size must be within the range of [100, 64000].
+        reduction_server_replica_count (int): The number of reduction server
+        replicas, default is 0.
+        reduction_server_machine_type (str): Optional. The type of machine to
+        use for reduction server.
+        reduction_server_container_uri (str): Optional. The Uri of the reduction
+        server container image. See details:
+        https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
+        training_fraction_split (float): Optional. The fraction of the input
+        data that is to be used to train the Model. This is ignored if Dataset
+        is not provided.
+        validation_fraction_split (float): Optional. The fraction of the input
+        data that is to be used to validate the Model. This is ignored if
+        Dataset is not provided.
+        test_fraction_split (float): Optional. The fraction of the input data
+        that is to be used to evaluate the Model. This is ignored if Dataset is
+        not provided.
+        training_filter_split (str): Optional. A filter on DataItems of the
+        Dataset. DataItems that match this filter are used to train the Model. A
+        filter with same syntax as the one used in DatasetService.ListDataItems
+        may be used. If a single DataItem is matched by more than one of the
+        FilterSplit filters, then it is assigned to the first set that applies
+        to it in the training, validation, test order. This is ignored if
+        Dataset is not provided.
+        validation_filter_split (str): Optional. A filter on DataItems of the
+        Dataset. DataItems that match this filter are used to validate the
+        Model. A filter with same syntax as the one used in
+        DatasetService.ListDataItems may be used. If a single DataItem is
+        matched by more than one of the FilterSplit filters, then it is assigned
+        to the first set that applies to it in the training, validation, test
+        order. This is ignored if Dataset is not provided.
+        test_filter_split (str): Optional. A filter on DataItems of the Dataset.
+        DataItems that match this filter are used to test the Model. A filter
+        with same syntax as the one used in DatasetService.ListDataItems may be
+        used. If a single DataItem is matched by more than one of the
+        FilterSplit filters, then it is assigned to the first set that applies
+        to it in the training, validation, test order. This is ignored if
+        Dataset is not provided.
+        predefined_split_column_name (str): Optional. The key is a name of one
+        of the Dataset's data columns. The value of the key (either the label's
+        value or value in the column) must be one of {``training``,
+        ``validation``, ``test``}, and it defines to which set the given piece
+        of data is assigned. If for a piece of data the key is not present or
+        has an invalid value, that piece is ignored by the pipeline.  Supported
+        only for tabular and time series Datasets.
+        timestamp_split_column_name (str): Optional. The key is a name of one of
+        the Dataset's data columns. The value of the key values of the key (the
+        values in the column) must be in RFC 3339 `date-time` format, where
+        `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a piece of
+        data the key is not present or has an invalid value, that piece is
+        ignored by the pipeline.  Supported only for tabular and time series
+        Datasets.
+        timeout (int): The maximum job running time in seconds. The default is 7
+        days.
+        restart_job_on_worker_restart (bool): Restarts the entire CustomJob if a
+        worker gets restarted. This feature can be used by distributed training
+        jobs that are not resilient to workers leaving and joining a job.
+        enable_web_access (bool): Whether you want Vertex AI to enable
+        interactive shell access to training containers.
+            https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell
+        enable_dashboard_access (bool): Whether you want Vertex AI to enable
+        access to the customized dashboard to training containers.
+        tensorboard (str): Optional. The name of a Vertex AI
+        [Tensorboard][google.cloud.aiplatform.v1beta1.Tensorboard] resource to
+        which this CustomJob will upload Tensorboard logs. Format:
+        ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
+        The training script should write Tensorboard to following Vertex AI
+        environment
+            variable:  AIP_TENSORBOARD_LOG_DIR  `service_account` is required
+            with provided `tensorboard`. For more information on configuring
+            your service account please visit:
+            https://cloud.google.com/vertex-ai/docs/experiments/tensorboard-training
+        create_request_timeout (float): Optional. The timeout for the create
+        request in seconds.
+        sync (bool): Whether to execute this method synchronously. If False,
+        this method will be executed in concurrent Future and any downstream
+        object will be immediately returned and synced when the Future has
+        completed.
+        disable_retries (bool): Indicates if the job should retry for internal
+        errors after the job starts running. If True, overrides
+        `restart_job_on_worker_restart` to False.
+        persistent_resource_id (str): Optional. The ID of the PersistentResource
+        in the same Project and Location. If this is specified, the job will be
+        run on existing machines held by the PersistentResource instead of
+        on-demand short-live machines. The network, CMEK, and node pool configs
+        on the job should be consistent with those on the PersistentResource,
+        otherwise, the job will be rejected.
+        tpu_topology (str): Optional. Specifies the tpu topology to be used for
+        TPU training job. This field is required for TPU v5 versions. For
+        details on the TPU topology, refer to
+        https://cloud.google.com/tpu/docs/v5e#tpu-v5e-config. The topology must
+        be a supported value for the TPU machine type.
 
-                os.environ["AIP_TRAINING_DATA_URI"]
-                os.environ["AIP_VALIDATION_DATA_URI"]
-                os.environ["AIP_TEST_DATA_URI"]
+    Returns:
+        model: The trained Vertex AI Model resource or None if training did not
+            produce a Vertex AI Model.
+    """
+    network = network or initializer.global_config.network
 
-                Additionally the dataset format is passed in as:
+    worker_pool_specs, managed_model = self._prepare_and_validate_run(
+        model_display_name=model_display_name,
+        model_labels=model_labels,
+        replica_count=replica_count,
+        machine_type=machine_type,
+        accelerator_count=accelerator_count,
+        accelerator_type=accelerator_type,
+        boot_disk_type=boot_disk_type,
+        boot_disk_size_gb=boot_disk_size_gb,
+        reduction_server_replica_count=reduction_server_replica_count,
+        reduction_server_machine_type=reduction_server_machine_type,
+        tpu_topology=tpu_topology,
+    )
 
-                os.environ["AIP_DATA_FORMAT"]
-            annotation_schema_uri (str):
-                Google Cloud Storage URI points to a YAML file describing
-                annotation schema. The schema is defined as an OpenAPI 3.0.2
-                [Schema Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#schema-object) The schema files
-                that can be used here are found in
-                gs://google-cloud-aiplatform/schema/dataset/annotation/,
-                note that the chosen schema must be consistent with
-                ``metadata``
-                of the Dataset specified by
-                ``dataset_id``.
+    # make and copy package
+    python_packager = source_utils._TrainingScriptPythonPackager(
+        script_path=self._script_path, requirements=self._requirements
+    )
 
-                Only Annotations that both match this schema and belong to
-                DataItems not ignored by the split method are used in
-                respectively training, validation or test role, depending on
-                the role of the DataItem they are on.
-
-                When used in conjunction with
-                ``annotations_filter``,
-                the Annotations used for training are filtered by both
-                ``annotations_filter``
-                and
-                ``annotation_schema_uri``.
-            model_display_name (str):
-                If the script produces a managed Vertex AI Model. The display name of
-                the Model. The name can be up to 128 characters long and can be consist
-                of any UTF-8 characters.
-
-                If not provided upon creation, the job's display_name is used.
-            model_labels (Dict[str, str]):
-                Optional. The labels with user-defined metadata to
-                organize your Models.
-                Label keys and values can be no longer than 64
-                characters (Unicode codepoints), can only
-                contain lowercase letters, numeric characters,
-                underscores and dashes. International characters
-                are allowed.
-                See https://goo.gl/xmQnxf for more information
-                and examples of labels.
-            model_id (str):
-                Optional. The ID to use for the Model produced by this job,
-                which will become the final component of the model resource name.
-                This value may be up to 63 characters, and valid characters
-                are `[a-z0-9_-]`. The first character cannot be a number or hyphen.
-            parent_model (str):
-                Optional. The resource name or model ID of an existing model.
-                The new model uploaded by this job will be a version of `parent_model`.
-
-                Only set this field when training a new version of an existing model.
-            is_default_version (bool):
-                Optional. When set to True, the newly uploaded model version will
-                automatically have alias "default" included. Subsequent uses of
-                the model produced by this job without a version specified will
-                use this "default" version.
-
-                When set to False, the "default" alias will not be moved.
-                Actions targeting the model version produced by this job will need
-                to specifically reference this version by ID or alias.
-
-                New model uploads, i.e. version 1, will always be "default" aliased.
-            model_version_aliases (Sequence[str]):
-                Optional. User provided version aliases so that the model version
-                uploaded by this job can be referenced via alias instead of
-                auto-generated version ID. A default version alias will be created
-                for the first version of the model.
-
-                The format is [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
-            model_version_description (str):
-               Optional. The description of the model version being uploaded by this job.
-            base_output_dir (str):
-                GCS output directory of job. If not provided a
-                timestamped directory in the staging directory will be used.
-
-                Vertex AI sets the following environment variables when it runs your training code:
-
-                -  AIP_MODEL_DIR: a Cloud Storage URI of a directory intended for saving model artifacts, i.e. <base_output_dir>/model/
-                -  AIP_CHECKPOINT_DIR: a Cloud Storage URI of a directory intended for saving checkpoints, i.e. <base_output_dir>/checkpoints/
-                -  AIP_TENSORBOARD_LOG_DIR: a Cloud Storage URI of a directory intended for saving TensorBoard logs, i.e. <base_output_dir>/logs/
-
-            service_account (str):
-                Specifies the service account for workload run-as account.
-                Users submitting jobs must have act-as permission on this run-as account.
-            network (str):
-                The full name of the Compute Engine network to which the job
-                should be peered. For example, projects/12345/global/networks/myVPC.
-                Private services access must already be configured for the network.
-                If left unspecified, the network set in aiplatform.init will be used.
-                Otherwise, the job is not peered with any network.
-            bigquery_destination (str):
-                Provide this field if `dataset` is a BigQuery dataset.
-                The BigQuery project location where the training data is to
-                be written to. In the given project a new dataset is created
-                with name
-                ``dataset_<dataset-id>_<annotation-type>_<timestamp-of-training-call>``
-                where timestamp is in YYYY_MM_DDThh_mm_ss_sssZ format. All
-                training input data will be written into that dataset. In
-                the dataset three tables will be created, ``training``,
-                ``validation`` and ``test``.
-
-                -  AIP_DATA_FORMAT = "bigquery".
-                -  AIP_TRAINING_DATA_URI ="bigquery_destination.dataset_*.training"
-                -  AIP_VALIDATION_DATA_URI = "bigquery_destination.dataset_*.validation"
-                -  AIP_TEST_DATA_URI = "bigquery_destination.dataset_*.test"
-            args (List[Unions[str, int, float]]):
-                Command line arguments to be passed to the Python script.
-            environment_variables (Dict[str, str]):
-                Environment variables to be passed to the container.
-                Should be a dictionary where keys are environment variable names
-                and values are environment variable values for those names.
-                At most 10 environment variables can be specified.
-                The Name of the environment variable must be unique.
-
-                environment_variables = {
-                    'MY_KEY': 'MY_VALUE'
-                }
-            replica_count (int):
-                The number of worker replicas. If replica count = 1 then one chief
-                replica will be provisioned. If replica_count > 1 the remainder will be
-                provisioned as a worker replica pool.
-            machine_type (str):
-                The type of machine to use for training.
-            accelerator_type (str):
-                Hardware accelerator type. One of ACCELERATOR_TYPE_UNSPECIFIED,
-                NVIDIA_TESLA_K80, NVIDIA_TESLA_P100, NVIDIA_TESLA_V100, NVIDIA_TESLA_P4,
-                NVIDIA_TESLA_T4
-            accelerator_count (int):
-                The number of accelerators to attach to a worker replica.
-            boot_disk_type (str):
-                Type of the boot disk, default is `pd-ssd`.
-                Valid values: `pd-ssd` (Persistent Disk Solid State Drive) or
-                `pd-standard` (Persistent Disk Hard Disk Drive).
-            boot_disk_size_gb (int):
-                Size in GB of the boot disk, default is 100GB.
-                boot disk size must be within the range of [100, 64000].
-            reduction_server_replica_count (int):
-                The number of reduction server replicas, default is 0.
-            reduction_server_machine_type (str):
-                Optional. The type of machine to use for reduction server.
-            reduction_server_container_uri (str):
-                Optional. The Uri of the reduction server container image.
-                See details: https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
-            training_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to train
-                the Model. This is ignored if Dataset is not provided.
-            validation_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to validate
-                the Model. This is ignored if Dataset is not provided.
-            test_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to evaluate
-                the Model. This is ignored if Dataset is not provided.
-            training_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to train the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            validation_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to validate the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            test_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to test the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            predefined_split_column_name (str):
-                Optional. The key is a name of one of the Dataset's data
-                columns. The value of the key (either the label's value or
-                value in the column) must be one of {``training``,
-                ``validation``, ``test``}, and it defines to which set the
-                given piece of data is assigned. If for a piece of data the
-                key is not present or has an invalid value, that piece is
-                ignored by the pipeline.
-
-                Supported only for tabular and time series Datasets.
-            timestamp_split_column_name (str):
-                Optional. The key is a name of one of the Dataset's data
-                columns. The value of the key values of the key (the values in
-                the column) must be in RFC 3339 `date-time` format, where
-                `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a
-                piece of data the key is not present or has an invalid value,
-                that piece is ignored by the pipeline.
-
-                Supported only for tabular and time series Datasets.
-            timeout (int):
-                The maximum job running time in seconds. The default is 7 days.
-            restart_job_on_worker_restart (bool):
-                Restarts the entire CustomJob if a worker
-                gets restarted. This feature can be used by
-                distributed training jobs that are not resilient
-                to workers leaving and joining a job.
-            enable_web_access (bool):
-                Whether you want Vertex AI to enable interactive shell access
-                to training containers.
-                https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell
-            enable_dashboard_access (bool):
-                Whether you want Vertex AI to enable access to the customized dashboard
-                to training containers.
-            tensorboard (str):
-                Optional. The name of a Vertex AI
-                [Tensorboard][google.cloud.aiplatform.v1beta1.Tensorboard]
-                resource to which this CustomJob will upload Tensorboard
-                logs. Format:
-                ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
-
-                The training script should write Tensorboard to following Vertex AI environment
-                variable:
-
-                AIP_TENSORBOARD_LOG_DIR
-
-                `service_account` is required with provided `tensorboard`.
-                For more information on configuring your service account please visit:
-                https://cloud.google.com/vertex-ai/docs/experiments/tensorboard-training
-            create_request_timeout (float):
-                Optional. The timeout for the create request in seconds.
-            sync (bool):
-                Whether to execute this method synchronously. If False, this method
-                will be executed in concurrent Future and any downstream object will
-                be immediately returned and synced when the Future has completed.
-            disable_retries (bool):
-                Indicates if the job should retry for internal errors after the
-                job starts running. If True, overrides
-                `restart_job_on_worker_restart` to False.
-            persistent_resource_id (str):
-                Optional. The ID of the PersistentResource in the same Project
-                and Location. If this is specified, the job will be run on
-                existing machines held by the PersistentResource instead of
-                on-demand short-live machines. The network, CMEK, and node pool
-                configs on the job should be consistent with those on the
-                PersistentResource, otherwise, the job will be rejected.
-
-        Returns:
-            model: The trained Vertex AI Model resource or None if training did not
-                produce a Vertex AI Model.
-        """
-        network = network or initializer.global_config.network
-
-        worker_pool_specs, managed_model = self._prepare_and_validate_run(
-            model_display_name=model_display_name,
-            model_labels=model_labels,
-            replica_count=replica_count,
-            machine_type=machine_type,
-            accelerator_count=accelerator_count,
-            accelerator_type=accelerator_type,
-            boot_disk_type=boot_disk_type,
-            boot_disk_size_gb=boot_disk_size_gb,
-            reduction_server_replica_count=reduction_server_replica_count,
-            reduction_server_machine_type=reduction_server_machine_type,
-        )
-
-        # make and copy package
-        python_packager = source_utils._TrainingScriptPythonPackager(
-            script_path=self._script_path, requirements=self._requirements
-        )
-
-        return self._run(
+    return self._run(
             python_packager=python_packager,
             dataset=dataset,
             annotation_schema_uri=annotation_schema_uri,
@@ -3742,8 +3644,8 @@ class CustomTrainingJob(_CustomTrainingJob):
             persistent_resource_id=persistent_resource_id,
         )
 
-    @base.optional_sync(construct_object_on_arg="managed_model")
-    def _run(
+  @base.optional_sync(construct_object_on_arg="managed_model")
+  def _run(
         self,
         python_packager: source_utils._TrainingScriptPythonPackager,
         dataset: Optional[
@@ -3788,7 +3690,7 @@ class CustomTrainingJob(_CustomTrainingJob):
         disable_retries: bool = False,
         persistent_resource_id: Optional[str] = None,
     ) -> Optional[models.Model]:
-        """Packages local script and launches training_job.
+    """Packages local script and launches training_job.
 
         Args:
             python_packager (source_utils._TrainingScriptPythonPackager):
@@ -3988,41 +3890,41 @@ class CustomTrainingJob(_CustomTrainingJob):
             model: The trained Vertex AI Model resource or None if training did not
                 produce a Vertex AI Model.
         """
-        package_gcs_uri = python_packager.package_and_copy_to_gcs(
+    package_gcs_uri = python_packager.package_and_copy_to_gcs(
             gcs_staging_dir=self._staging_bucket,
             project=self.project,
             credentials=self.credentials,
         )
 
-        for spec_order, spec in enumerate(worker_pool_specs):
+    for spec_order, spec in enumerate(worker_pool_specs):
 
-            if not spec:
-                continue
+      if not spec:
+        continue
 
-            if (
+      if (
                 spec_order == worker_spec_utils._SPEC_ORDERS["server_spec"]
                 and reduction_server_container_uri
             ):
-                spec["container_spec"] = {
+        spec["container_spec"] = {
                     "image_uri": reduction_server_container_uri,
                 }
-            else:
-                spec["python_package_spec"] = {
+      else:
+        spec["python_package_spec"] = {
                     "executor_image_uri": self._container_uri,
                     "python_module": python_packager.module_name,
                     "package_uris": [package_gcs_uri],
                 }
 
-                if args:
-                    spec["python_package_spec"]["args"] = args
+        if args:
+          spec["python_package_spec"]["args"] = args
 
-                if environment_variables:
-                    spec["python_package_spec"]["env"] = [
+        if environment_variables:
+          spec["python_package_spec"]["env"] = [
                         {"name": key, "value": value}
                         for key, value in environment_variables.items()
                     ]
 
-        (
+    (
             training_task_inputs,
             base_output_dir,
         ) = self._prepare_training_task_inputs_and_output_dir(
@@ -4039,7 +3941,7 @@ class CustomTrainingJob(_CustomTrainingJob):
             persistent_resource_id=persistent_resource_id,
         )
 
-        model = self._run_job(
+    model = self._run_job(
             training_task_definition=schema.training_job.definition.custom_task,
             training_task_inputs=training_task_inputs,
             dataset=dataset,
@@ -4064,14 +3966,14 @@ class CustomTrainingJob(_CustomTrainingJob):
             block=block,
         )
 
-        return model
+    return model
 
 
 class CustomContainerTrainingJob(_CustomTrainingJob):
-    """Class to launch a Custom Training Job in Vertex AI using a
+  """Class to launch a Custom Training Job in Vertex AI using a
     Container."""
 
-    def __init__(
+  def __init__(
         self,
         # TODO(b/223262536): Make display_name parameter fully optional in next major release
         display_name: str,
@@ -4098,7 +4000,7 @@ class CustomContainerTrainingJob(_CustomTrainingJob):
         model_encryption_spec_key_name: Optional[str] = None,
         staging_bucket: Optional[str] = None,
     ):
-        """Constructs a Custom Container Training Job.
+    """Constructs a Custom Container Training Job.
 
         job = aiplatform.CustomContainerTrainingJob(
             display_name='test-train',
@@ -4281,9 +4183,9 @@ class CustomContainerTrainingJob(_CustomTrainingJob):
                 Bucket used to stage source and training artifacts. Overrides
                 staging_bucket set in aiplatform.init.
         """
-        if not display_name:
-            display_name = self.__class__._generate_display_name()
-        super().__init__(
+    if not display_name:
+      display_name = self.__class__._generate_display_name()
+    super().__init__(
             display_name=display_name,
             project=project,
             location=location,
@@ -4308,812 +4210,734 @@ class CustomContainerTrainingJob(_CustomTrainingJob):
             staging_bucket=staging_bucket,
         )
 
-        self._command = command
+    self._command = command
 
-    def run(
-        self,
-        dataset: Optional[
-            Union[
-                datasets.ImageDataset,
-                datasets.TabularDataset,
-                datasets.TextDataset,
-                datasets.VideoDataset,
-            ]
-        ] = None,
-        annotation_schema_uri: Optional[str] = None,
-        model_display_name: Optional[str] = None,
-        model_labels: Optional[Dict[str, str]] = None,
-        model_id: Optional[str] = None,
-        parent_model: Optional[str] = None,
-        is_default_version: Optional[bool] = True,
-        model_version_aliases: Optional[Sequence[str]] = None,
-        model_version_description: Optional[str] = None,
-        base_output_dir: Optional[str] = None,
-        service_account: Optional[str] = None,
-        network: Optional[str] = None,
-        bigquery_destination: Optional[str] = None,
-        args: Optional[List[Union[str, float, int]]] = None,
-        environment_variables: Optional[Dict[str, str]] = None,
-        replica_count: int = 1,
-        machine_type: str = "n1-standard-4",
-        accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
-        accelerator_count: int = 0,
-        boot_disk_type: str = "pd-ssd",
-        boot_disk_size_gb: int = 100,
-        reduction_server_replica_count: int = 0,
-        reduction_server_machine_type: Optional[str] = None,
-        reduction_server_container_uri: Optional[str] = None,
-        training_fraction_split: Optional[float] = None,
-        validation_fraction_split: Optional[float] = None,
-        test_fraction_split: Optional[float] = None,
-        training_filter_split: Optional[str] = None,
-        validation_filter_split: Optional[str] = None,
-        test_filter_split: Optional[str] = None,
-        predefined_split_column_name: Optional[str] = None,
-        timestamp_split_column_name: Optional[str] = None,
-        timeout: Optional[int] = None,
-        restart_job_on_worker_restart: bool = False,
-        enable_web_access: bool = False,
-        enable_dashboard_access: bool = False,
-        tensorboard: Optional[str] = None,
-        sync=True,
-        create_request_timeout: Optional[float] = None,
-        disable_retries: bool = False,
-        persistent_resource_id: Optional[str] = None,
-    ) -> Optional[models.Model]:
-        """Runs the custom training job.
+  def run(
+      self,
+      dataset: Optional[
+          Union[
+              datasets.ImageDataset,
+              datasets.TabularDataset,
+              datasets.TextDataset,
+              datasets.VideoDataset,
+          ]
+      ] = None,
+      annotation_schema_uri: Optional[str] = None,
+      model_display_name: Optional[str] = None,
+      model_labels: Optional[Dict[str, str]] = None,
+      model_id: Optional[str] = None,
+      parent_model: Optional[str] = None,
+      is_default_version: Optional[bool] = True,
+      model_version_aliases: Optional[Sequence[str]] = None,
+      model_version_description: Optional[str] = None,
+      base_output_dir: Optional[str] = None,
+      service_account: Optional[str] = None,
+      network: Optional[str] = None,
+      bigquery_destination: Optional[str] = None,
+      args: Optional[List[Union[str, float, int]]] = None,
+      environment_variables: Optional[Dict[str, str]] = None,
+      replica_count: int = 1,
+      machine_type: str = "n1-standard-4",
+      accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
+      accelerator_count: int = 0,
+      boot_disk_type: str = "pd-ssd",
+      boot_disk_size_gb: int = 100,
+      reduction_server_replica_count: int = 0,
+      reduction_server_machine_type: Optional[str] = None,
+      reduction_server_container_uri: Optional[str] = None,
+      training_fraction_split: Optional[float] = None,
+      validation_fraction_split: Optional[float] = None,
+      test_fraction_split: Optional[float] = None,
+      training_filter_split: Optional[str] = None,
+      validation_filter_split: Optional[str] = None,
+      test_filter_split: Optional[str] = None,
+      predefined_split_column_name: Optional[str] = None,
+      timestamp_split_column_name: Optional[str] = None,
+      timeout: Optional[int] = None,
+      restart_job_on_worker_restart: bool = False,
+      enable_web_access: bool = False,
+      enable_dashboard_access: bool = False,
+      tensorboard: Optional[str] = None,
+      sync=True,
+      create_request_timeout: Optional[float] = None,
+      disable_retries: bool = False,
+      persistent_resource_id: Optional[str] = None,
+      tpu_topology: Optional[str] = None,
+  ) -> Optional[models.Model]:
+    """Runs the custom training job.
 
-        Distributed Training Support:
-        If replica count = 1 then one chief replica will be provisioned. If
-        replica_count > 1 the remainder will be provisioned as a worker replica pool.
-        ie: replica_count = 10 will result in 1 chief and 9 workers
-        All replicas have same machine_type, accelerator_type, and accelerator_count
+    Distributed Training Support:
+    If replica count = 1 then one chief replica will be provisioned. If
+    replica_count > 1 the remainder will be provisioned as a worker replica
+    pool.
+    ie: replica_count = 10 will result in 1 chief and 9 workers
+    All replicas have same machine_type, accelerator_type, and accelerator_count
 
-        If training on a Vertex AI dataset, you can use one of the following split configurations:
-            Data fraction splits:
-            Any of ``training_fraction_split``, ``validation_fraction_split`` and
-            ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
-            the provided ones sum to less than 1, the remainder is assigned to sets as
-            decided by Vertex AI. If none of the fractions are set, by default roughly 80%
-            of data will be used for training, 10% for validation, and 10% for test.
+    If training on a Vertex AI dataset, you can use one of the following split
+    configurations:
+        Data fraction splits:
+        Any of ``training_fraction_split``, ``validation_fraction_split`` and
+        ``test_fraction_split`` may optionally be provided, they must sum to up
+        to 1. If
+        the provided ones sum to less than 1, the remainder is assigned to sets
+        as
+        decided by Vertex AI. If none of the fractions are set, by default
+        roughly 80%
+        of data will be used for training, 10% for validation, and 10% for test.
 
-            Data filter splits:
-            Assigns input data to training, validation, and test sets
-            based on the given filters, data pieces not matched by any
-            filter are ignored. Currently only supported for Datasets
-            containing DataItems.
-            If any of the filters in this message are to match nothing, then
-            they can be set as '-' (the minus sign).
-            If using filter splits, all of ``training_filter_split``, ``validation_filter_split`` and
-            ``test_filter_split`` must be provided.
-            Supported only for unstructured Datasets.
+        Data filter splits:
+        Assigns input data to training, validation, and test sets
+        based on the given filters, data pieces not matched by any
+        filter are ignored. Currently only supported for Datasets
+        containing DataItems.
+        If any of the filters in this message are to match nothing, then
+        they can be set as '-' (the minus sign).
+        If using filter splits, all of ``training_filter_split``,
+        ``validation_filter_split`` and
+        ``test_filter_split`` must be provided.
+        Supported only for unstructured Datasets.
 
-            Predefined splits:
-            Assigns input data to training, validation, and test sets based on the value of a provided key.
-            If using predefined splits, ``predefined_split_column_name`` must be provided.
-            Supported only for tabular Datasets.
+        Predefined splits:
+        Assigns input data to training, validation, and test sets based on the
+        value of a provided key.
+        If using predefined splits, ``predefined_split_column_name`` must be
+        provided.
+        Supported only for tabular Datasets.
 
-            Timestamp splits:
-            Assigns input data to training, validation, and test sets
-            based on a provided timestamps. The youngest data pieces are
-            assigned to training set, next to validation set, and the oldest
-            to the test set.
-            Supported only for tabular Datasets.
+        Timestamp splits:
+        Assigns input data to training, validation, and test sets
+        based on a provided timestamps. The youngest data pieces are
+        assigned to training set, next to validation set, and the oldest
+        to the test set.
+        Supported only for tabular Datasets.
 
-        Args:
-            dataset (Union[datasets.ImageDataset,datasets.TabularDataset,datasets.TextDataset,datasets.VideoDataset]):
-                Vertex AI to fit this training against. Custom training script should
-                retrieve datasets through passed in environment variables uris:
+    Args: dataset
+    (Union[datasets.ImageDataset,datasets.TabularDataset,datasets.TextDataset,datasets.VideoDataset]):
+    Vertex AI to fit this training against. Custom training script should
+    retrieve datasets through passed in environment variables uris:
+    os.environ["AIP_TRAINING_DATA_URI"] os.environ["AIP_VALIDATION_DATA_URI"]
+    os.environ["AIP_TEST_DATA_URI"] Additionally the dataset format is passed in
+    as: os.environ["AIP_DATA_FORMAT"]
+        annotation_schema_uri (str): Google Cloud Storage URI points to a YAML
+        file describing annotation schema. The schema is defined as an OpenAPI
+        3.0.2 [Schema
+        Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#schema-object)
+        The schema files that can be used here are found in
+            gs://google-cloud-aiplatform/schema/dataset/annotation/, note that
+            the chosen schema must be consistent with ``metadata`` of the
+            Dataset specified by ``dataset_id``.  Only Annotations that both
+            match this schema and belong to DataItems not ignored by the split
+            method are used in respectively training, validation or test role,
+            depending on the role of the DataItem they are on.  When used in
+            conjunction with ``annotations_filter``, the Annotations used for
+            training are filtered by both ``annotations_filter`` and
+            ``annotation_schema_uri``.
+        model_display_name (str): If the script produces a managed Vertex AI
+        Model. The display name of the Model. The name can be up to 128
+        characters long and can be consist of any UTF-8 characters.  If not
+        provided upon creation, the job's display_name is used.
+        model_labels (Dict[str, str]): Optional. The labels with user-defined
+        metadata to organize your Models. Label keys and values can be no longer
+        than 64 characters (Unicode codepoints), can only contain lowercase
+        letters, numeric characters, underscores and dashes. International
+        characters are allowed. See https://goo.gl/xmQnxf for more information
+        and examples of labels.
+        model_id (str): Optional. The ID to use for the Model produced by this
+        job, which will become the final component of the model resource name.
+        This value may be up to 63 characters, and valid characters are
+        `[a-z0-9_-]`. The first character cannot be a number or hyphen.
+        parent_model (str): Optional. The resource name or model ID of an
+        existing model. The new model uploaded by this job will be a version of
+        `parent_model`.  Only set this field when training a new version of an
+        existing model.
+        is_default_version (bool): Optional. When set to True, the newly
+        uploaded model version will automatically have alias "default" included.
+        Subsequent uses of the model produced by this job without a version
+        specified will use this "default" version.  When set to False, the
+        "default" alias will not be moved. Actions targeting the model version
+        produced by this job will need to specifically reference this version by
+        ID or alias.  New model uploads, i.e. version 1, will always be
+        "default" aliased.
+        model_version_aliases (Sequence[str]): Optional. User provided version
+        aliases so that the model version uploaded by this job can be referenced
+        via alias instead of auto-generated version ID. A default version alias
+        will be created for the first version of the model.  The format is
+        [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
+        model_version_description (str): Optional. The description of the model
+        version being uploaded by this job.
+        base_output_dir (str): GCS output directory of job. If not provided a
+        timestamped directory in the staging directory will be used.  Vertex AI
+        sets the following environment variables when it runs your training
+          code:  -  AIP_MODEL_DIR: a Cloud Storage URI of a directory intended
+          for saving model artifacts, i.e. <base_output_dir>/model/ -
+          AIP_CHECKPOINT_DIR: a Cloud Storage URI of a directory intended for
+          saving checkpoints, i.e. <base_output_dir>/checkpoints/ -
+          AIP_TENSORBOARD_LOG_DIR: a Cloud Storage URI of a directory intended
+          for saving TensorBoard logs, i.e. <base_output_dir>/logs/
+        service_account (str): Specifies the service account for workload run-as
+        account. Users submitting jobs must have act-as permission on this
+        run-as account.
+        network (str): The full name of the Compute Engine network to which the
+        job should be peered. For example, projects/12345/global/networks/myVPC.
+        Private services access must already be configured for the network. If
+        left unspecified, the network set in aiplatform.init will be used.
+        Otherwise, the job is not peered with any network.
+        bigquery_destination (str): Provide this field if `dataset` is a
+        BigQuery dataset. The BigQuery project location where the training data
+        is to be written to. In the given project a new dataset is created with
+        name
+        ``dataset_<dataset-id>_<annotation-type>_<timestamp-of-training-call>``
+        where timestamp is in YYYY_MM_DDThh_mm_ss_sssZ format. All training
+        input data will be written into that dataset. In the dataset three
+        tables will be created, ``training``, ``validation`` and ``test``.  -
+        AIP_DATA_FORMAT = "bigquery". -  AIP_TRAINING_DATA_URI
+        ="bigquery_destination.dataset_*.training" -  AIP_VALIDATION_DATA_URI =
+        "bigquery_destination.dataset_*.validation" -  AIP_TEST_DATA_URI =
+        "bigquery_destination.dataset_*.test"
+        args (List[Unions[str, int, float]]): Command line arguments to be
+        passed to the Python script.
+        environment_variables (Dict[str, str]): Environment variables to be
+        passed to the container. Should be a dictionary where keys are
+        environment variable names and values are environment variable values
+        for those names. At most 10 environment variables can be specified. The
+        Name of the environment variable must be unique. environment_variables =
+        { 'MY_KEY': 'MY_VALUE' }
+        replica_count (int): The number of worker replicas. If replica count = 1
+        then one chief replica will be provisioned. If replica_count > 1 the
+        remainder will be provisioned as a worker replica pool.
+        machine_type (str): The type of machine to use for training.
+        accelerator_type (str): Hardware accelerator type. One of
+        ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100,
+        NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4, TPU_V2, TPU_V3
+        accelerator_count (int): The number of accelerators to attach to a
+        worker replica.
+        boot_disk_type (str): Type of the boot disk, default is `pd-ssd`. Valid
+          values: `pd-ssd` (Persistent Disk Solid State Drive) or `pd-standard`
+          (Persistent Disk Hard Disk Drive).
+        boot_disk_size_gb (int): Size in GB of the boot disk, default is 100GB.
+        boot disk size must be within the range of [100, 64000].
+        reduction_server_replica_count (int): The number of reduction server
+        replicas, default is 0.
+        reduction_server_machine_type (str): Optional. The type of machine to
+        use for reduction server.
+        reduction_server_container_uri (str): Optional. The Uri of the reduction
+        server container image. See details:
+          https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
+        training_fraction_split (float): Optional. The fraction of the input
+        data that is to be used to train the Model. This is ignored if Dataset
+        is not provided.
+        validation_fraction_split (float): Optional. The fraction of the input
+        data that is to be used to validate the Model. This is ignored if
+        Dataset is not provided.
+        test_fraction_split (float): Optional. The fraction of the input data
+        that is to be used to evaluate the Model. This is ignored if Dataset is
+        not provided.
+        training_filter_split (str): Optional. A filter on DataItems of the
+        Dataset. DataItems that match this filter are used to train the Model. A
+        filter with same syntax as the one used in DatasetService.ListDataItems
+        may be used. If a single DataItem is matched by more than one of the
+        FilterSplit filters, then it is assigned to the first set that applies
+        to it in the training, validation, test order. This is ignored if
+        Dataset is not provided.
+        validation_filter_split (str): Optional. A filter on DataItems of the
+        Dataset. DataItems that match this filter are used to validate the
+        Model. A filter with same syntax as the one used in
+        DatasetService.ListDataItems may be used. If a single DataItem is
+        matched by more than one of the FilterSplit filters, then it is assigned
+        to the first set that applies to it in the training, validation, test
+        order. This is ignored if Dataset is not provided.
+        test_filter_split (str): Optional. A filter on DataItems of the Dataset.
+        DataItems that match this filter are used to test the Model. A filter
+        with same syntax as the one used in DatasetService.ListDataItems may be
+        used. If a single DataItem is matched by more than one of the
+        FilterSplit filters, then it is assigned to the first set that applies
+        to it in the training, validation, test order. This is ignored if
+        Dataset is not provided.
+        predefined_split_column_name (str): Optional. The key is a name of one
+        of the Dataset's data columns. The value of the key (either the label's
+        value or value in the column) must be one of {``training``,
+        ``validation``, ``test``}, and it defines to which set the given piece
+        of data is assigned. If for a piece of data the key is not present or
+        has an invalid value, that piece is ignored by the pipeline. Supported
+        only for tabular and time series Datasets.
+        timestamp_split_column_name (str): Optional. The key is a name of one of
+        the Dataset's data columns. The value of the key values of the key (the
+        values in the column) must be in RFC 3339 `date-time` format, where
+        `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a piece of
+        data the key is not present or has an invalid value, that piece is
+        ignored by the pipeline.  Supported only for tabular and time series
+        Datasets.
+        timeout (int): The maximum job running time in seconds. The default is 7
+        days.
+        restart_job_on_worker_restart (bool): Restarts the entire CustomJob if a
+        worker gets restarted. This feature can be used by distributed training
+        jobs that are not resilient to workers leaving and joining a job.
+        enable_web_access (bool): Whether you want Vertex AI to enable
+        interactive shell access to training containers.
+            https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell
+        enable_dashboard_access (bool): Whether you want Vertex AI to enable
+        access to the customized dashboard to training containers.
+        tensorboard (str): Optional. The name of a Vertex AI
+        [Tensorboard][google.cloud.aiplatform.v1beta1.Tensorboard] resource to
+        which this CustomJob will upload Tensorboard logs. Format:
+        ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
+        The training script should write Tensorboard to following Vertex AI
+        environment
+            variable:  AIP_TENSORBOARD_LOG_DIR  `service_account` is required
+            with provided `tensorboard`. For more information on configuring
+            your service account please visit:
+            https://cloud.google.com/vertex-ai/docs/experiments/tensorboard-training
+        sync (bool): Whether to execute this method synchronously. If False,
+        this method will be executed in concurrent Future and any downstream
+        object will be immediately returned and synced when the Future has
+        completed.
+        create_request_timeout (float): Optional. The timeout for the create
+        request in seconds.
+        disable_retries (bool): Indicates if the job should retry for internal
+        errors after the job starts running. If True, overrides
+        `restart_job_on_worker_restart` to False.
+        persistent_resource_id (str): Optional. The ID of the PersistentResource
+        in the same Project and Location. If this is specified, the job will be
+        run on existing machines held by the PersistentResource instead of
+        on-demand short-live machines. The network, CMEK, and node pool configs
+        on the job should be consistent with those on the PersistentResource,
+        otherwise, the job will be rejected.
+        tpu_topology (str): Optional. Specifies the tpu topology to be used for
+        TPU training job. This field is required for TPU v5 versions. For
+        details on the TPU topology, refer to
+          https://cloud.google.com/tpu/docs/v5e#tpu-v5e-config. The topology
+          must be a supported value for the TPU machine type.
 
-                os.environ["AIP_TRAINING_DATA_URI"]
-                os.environ["AIP_VALIDATION_DATA_URI"]
-                os.environ["AIP_TEST_DATA_URI"]
+    Returns:
+        model: The trained Vertex AI Model resource or None if training did not
+            produce a Vertex AI Model.
 
-                Additionally the dataset format is passed in as:
+    Raises:
+        RuntimeError: If Training job has already been run, staging_bucket has
+        not
+            been set, or model_display_name was provided but required arguments
+            were not provided in constructor.
+    """
+    network = network or initializer.global_config.network
+    service_account = (
+        service_account or initializer.global_config.service_account
+    )
 
-                os.environ["AIP_DATA_FORMAT"]
-            annotation_schema_uri (str):
-                Google Cloud Storage URI points to a YAML file describing
-                annotation schema. The schema is defined as an OpenAPI 3.0.2
-                [Schema Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#schema-object) The schema files
-                that can be used here are found in
-                gs://google-cloud-aiplatform/schema/dataset/annotation/,
-                note that the chosen schema must be consistent with
-                ``metadata``
-                of the Dataset specified by
-                ``dataset_id``.
+    worker_pool_specs, managed_model = self._prepare_and_validate_run(
+        model_display_name=model_display_name,
+        model_labels=model_labels,
+        replica_count=replica_count,
+        machine_type=machine_type,
+        accelerator_count=accelerator_count,
+        accelerator_type=accelerator_type,
+        boot_disk_type=boot_disk_type,
+        boot_disk_size_gb=boot_disk_size_gb,
+        reduction_server_replica_count=reduction_server_replica_count,
+        reduction_server_machine_type=reduction_server_machine_type,
+        tpu_topology=tpu_topology,
+    )
 
-                Only Annotations that both match this schema and belong to
-                DataItems not ignored by the split method are used in
-                respectively training, validation or test role, depending on
-                the role of the DataItem they are on.
+    return self._run(
+        dataset=dataset,
+        annotation_schema_uri=annotation_schema_uri,
+        worker_pool_specs=worker_pool_specs,
+        managed_model=managed_model,
+        model_id=model_id,
+        parent_model=parent_model,
+        is_default_version=is_default_version,
+        model_version_aliases=model_version_aliases,
+        model_version_description=model_version_description,
+        args=args,
+        environment_variables=environment_variables,
+        base_output_dir=base_output_dir,
+        service_account=service_account,
+        network=network,
+        bigquery_destination=bigquery_destination,
+        training_fraction_split=training_fraction_split,
+        validation_fraction_split=validation_fraction_split,
+        test_fraction_split=test_fraction_split,
+        training_filter_split=training_filter_split,
+        validation_filter_split=validation_filter_split,
+        test_filter_split=test_filter_split,
+        predefined_split_column_name=predefined_split_column_name,
+        timestamp_split_column_name=timestamp_split_column_name,
+        timeout=timeout,
+        restart_job_on_worker_restart=restart_job_on_worker_restart,
+        enable_web_access=enable_web_access,
+        enable_dashboard_access=enable_dashboard_access,
+        tensorboard=tensorboard,
+        reduction_server_container_uri=reduction_server_container_uri
+        if reduction_server_replica_count > 0
+        else None,
+        sync=sync,
+        create_request_timeout=create_request_timeout,
+        disable_retries=disable_retries,
+        persistent_resource_id=persistent_resource_id,
+    )
 
-                When used in conjunction with
-                ``annotations_filter``,
-                the Annotations used for training are filtered by both
-                ``annotations_filter``
-                and
-                ``annotation_schema_uri``.
-            model_display_name (str):
-                If the script produces a managed Vertex AI Model. The display name of
-                the Model. The name can be up to 128 characters long and can be consist
-                of any UTF-8 characters.
+  def submit(
+      self,
+      dataset: Optional[
+          Union[
+              datasets.ImageDataset,
+              datasets.TabularDataset,
+              datasets.TextDataset,
+              datasets.VideoDataset,
+          ]
+      ] = None,
+      annotation_schema_uri: Optional[str] = None,
+      model_display_name: Optional[str] = None,
+      model_labels: Optional[Dict[str, str]] = None,
+      model_id: Optional[str] = None,
+      parent_model: Optional[str] = None,
+      is_default_version: Optional[bool] = True,
+      model_version_aliases: Optional[Sequence[str]] = None,
+      model_version_description: Optional[str] = None,
+      base_output_dir: Optional[str] = None,
+      service_account: Optional[str] = None,
+      network: Optional[str] = None,
+      bigquery_destination: Optional[str] = None,
+      args: Optional[List[Union[str, float, int]]] = None,
+      environment_variables: Optional[Dict[str, str]] = None,
+      replica_count: int = 1,
+      machine_type: str = "n1-standard-4",
+      accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
+      accelerator_count: int = 0,
+      boot_disk_type: str = "pd-ssd",
+      boot_disk_size_gb: int = 100,
+      reduction_server_replica_count: int = 0,
+      reduction_server_machine_type: Optional[str] = None,
+      reduction_server_container_uri: Optional[str] = None,
+      training_fraction_split: Optional[float] = None,
+      validation_fraction_split: Optional[float] = None,
+      test_fraction_split: Optional[float] = None,
+      training_filter_split: Optional[str] = None,
+      validation_filter_split: Optional[str] = None,
+      test_filter_split: Optional[str] = None,
+      predefined_split_column_name: Optional[str] = None,
+      timestamp_split_column_name: Optional[str] = None,
+      timeout: Optional[int] = None,
+      restart_job_on_worker_restart: bool = False,
+      enable_web_access: bool = False,
+      enable_dashboard_access: bool = False,
+      tensorboard: Optional[str] = None,
+      sync=True,
+      create_request_timeout: Optional[float] = None,
+      disable_retries: bool = False,
+      persistent_resource_id: Optional[str] = None,
+      tpu_topology: Optional[str] = None,
+  ) -> Optional[models.Model]:
+    """Submits the custom training job without blocking until completion.
 
-                If not provided upon creation, the job's display_name is used.
-            model_labels (Dict[str, str]):
-                Optional. The labels with user-defined metadata to
-                organize your Models.
-                Label keys and values can be no longer than 64
-                characters (Unicode codepoints), can only
-                contain lowercase letters, numeric characters,
-                underscores and dashes. International characters
-                are allowed.
-                See https://goo.gl/xmQnxf for more information
-                and examples of labels.
-            model_id (str):
-                Optional. The ID to use for the Model produced by this job,
-                which will become the final component of the model resource name.
-                This value may be up to 63 characters, and valid characters
-                are `[a-z0-9_-]`. The first character cannot be a number or hyphen.
-            parent_model (str):
-                Optional. The resource name or model ID of an existing model.
-                The new model uploaded by this job will be a version of `parent_model`.
+    Distributed Training Support:
+    If replica count = 1 then one chief replica will be provisioned. If
+    replica_count > 1 the remainder will be provisioned as a worker replica
+    pool.
+    ie: replica_count = 10 will result in 1 chief and 9 workers
+    All replicas have same machine_type, accelerator_type, and accelerator_count
 
-                Only set this field when training a new version of an existing model.
-            is_default_version (bool):
-                Optional. When set to True, the newly uploaded model version will
-                automatically have alias "default" included. Subsequent uses of
-                the model produced by this job without a version specified will
-                use this "default" version.
+    If training on a Vertex AI dataset, you can use one of the following split
+    configurations:
+        Data fraction splits:
+        Any of ``training_fraction_split``, ``validation_fraction_split`` and
+        ``test_fraction_split`` may optionally be provided, they must sum to up
+        to 1. If
+        the provided ones sum to less than 1, the remainder is assigned to sets
+        as
+        decided by Vertex AI. If none of the fractions are set, by default
+        roughly 80%
+        of data will be used for training, 10% for validation, and 10% for test.
 
-                When set to False, the "default" alias will not be moved.
-                Actions targeting the model version produced by this job will need
-                to specifically reference this version by ID or alias.
+        Data filter splits:
+        Assigns input data to training, validation, and test sets
+        based on the given filters, data pieces not matched by any
+        filter are ignored. Currently only supported for Datasets
+        containing DataItems.
+        If any of the filters in this message are to match nothing, then
+        they can be set as '-' (the minus sign).
+        If using filter splits, all of ``training_filter_split``,
+        ``validation_filter_split`` and
+        ``test_filter_split`` must be provided.
+        Supported only for unstructured Datasets.
 
-                New model uploads, i.e. version 1, will always be "default" aliased.
-            model_version_aliases (Sequence[str]):
-                Optional. User provided version aliases so that the model version
-                uploaded by this job can be referenced via alias instead of
-                auto-generated version ID. A default version alias will be created
-                for the first version of the model.
+        Predefined splits:
+        Assigns input data to training, validation, and test sets based on the
+        value of a provided key.
+        If using predefined splits, ``predefined_split_column_name`` must be
+        provided.
+        Supported only for tabular Datasets.
 
-                The format is [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
-            model_version_description (str):
-               Optional. The description of the model version being uploaded by this job.
-            base_output_dir (str):
-                GCS output directory of job. If not provided a
-                timestamped directory in the staging directory will be used.
+        Timestamp splits:
+        Assigns input data to training, validation, and test sets
+        based on a provided timestamps. The youngest data pieces are
+        assigned to training set, next to validation set, and the oldest
+        to the test set.
+        Supported only for tabular Datasets.
 
-                Vertex AI sets the following environment variables when it runs your training code:
+    Args: dataset
+    (Union[datasets.ImageDataset,datasets.TabularDataset,datasets.TextDataset,datasets.VideoDataset]):
+    Vertex AI to fit this training against. Custom training script should
+    retrieve datasets through passed in environment variables uris:
+    os.environ["AIP_TRAINING_DATA_URI"] os.environ["AIP_VALIDATION_DATA_URI"]
+    os.environ["AIP_TEST_DATA_URI"] Additionally the dataset format is passed in
+    as: os.environ["AIP_DATA_FORMAT"]
+        annotation_schema_uri (str): Google Cloud Storage URI points to a YAML
+        file describing annotation schema. The schema is defined as an OpenAPI
+        3.0.2 [Schema
+        Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#schema-object)
+        The schema files that can be used here are found in
+            gs://google-cloud-aiplatform/schema/dataset/annotation/, note that
+            the chosen schema must be consistent with ``metadata`` of the
+            Dataset specified by ``dataset_id``.  Only Annotations that both
+            match this schema and belong to DataItems not ignored by the split
+            method are used in respectively training, validation or test role,
+            depending on the role of the DataItem they are on.  When used in
+            conjunction with ``annotations_filter``, the Annotations used for
+            training are filtered by both ``annotations_filter`` and
+            ``annotation_schema_uri``.
+        model_display_name (str): If the script produces a managed Vertex AI
+        Model. The display name of the Model. The name can be up to 128
+        characters long and can be consist of any UTF-8 characters.  If not
+        provided upon creation, the job's display_name is used.
+        model_labels (Dict[str, str]): Optional. The labels with user-defined
+        metadata to organize your Models. Label keys and values can be no longer
+        than 64 characters (Unicode codepoints), can only contain lowercase
+        letters, numeric characters, underscores and dashes. International
+        characters are allowed. See https://goo.gl/xmQnxf for more information
+        and examples of labels.
+        model_id (str): Optional. The ID to use for the Model produced by this
+        job, which will become the final component of the model resource name.
+        This value may be up to 63 characters, and valid characters are
+        `[a-z0-9_-]`. The first character cannot be a number or hyphen.
+        parent_model (str): Optional. The resource name or model ID of an
+        existing model. The new model uploaded by this job will be a version of
+        `parent_model`.  Only set this field when training a new version of an
+        existing model.
+        is_default_version (bool): Optional. When set to True, the newly
+        uploaded model version will automatically have alias "default" included.
+        Subsequent uses of the model produced by this job without a version
+        specified will use this "default" version.  When set to False, the
+        "default" alias will not be moved. Actions targeting the model version
+        produced by this job will need to specifically reference this version by
+        ID or alias.  New model uploads, i.e. version 1, will always be
+        "default" aliased.
+        model_version_aliases (Sequence[str]): Optional. User provided version
+        aliases so that the model version uploaded by this job can be referenced
+        via alias instead of auto-generated version ID. A default version alias
+        will be created for the first version of the model.  The format is
+        [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
+        model_version_description (str): Optional. The description of the model
+        version being uploaded by this job.
+        base_output_dir (str): GCS output directory of job. If not provided a
+        timestamped directory in the staging directory will be used.  Vertex AI
+        sets the following environment variables when it runs your training
+          code:  -  AIP_MODEL_DIR: a Cloud Storage URI of a directory intended
+          for saving model artifacts, i.e. <base_output_dir>/model/ -
+          AIP_CHECKPOINT_DIR: a Cloud Storage URI of a directory intended for
+          saving checkpoints, i.e. <base_output_dir>/checkpoints/ -
+          AIP_TENSORBOARD_LOG_DIR: a Cloud Storage URI of a directory intended
+          for saving TensorBoard logs, i.e. <base_output_dir>/logs/
+        service_account (str): Specifies the service account for workload run-as
+        account. Users submitting jobs must have act-as permission on this
+        run-as account.
+        network (str): The full name of the Compute Engine network to which the
+        job should be peered. For example, projects/12345/global/networks/myVPC.
+        Private services access must already be configured for the network. If
+        left unspecified, the network set in aiplatform.init will be used.
+        Otherwise, the job is not peered with any network.
+        bigquery_destination (str): Provide this field if `dataset` is a
+        BigQuery dataset. The BigQuery project location where the training data
+        is to be written to. In the given project a new dataset is created with
+        name
+        ``dataset_<dataset-id>_<annotation-type>_<timestamp-of-training-call>``
+        where timestamp is in YYYY_MM_DDThh_mm_ss_sssZ format. All training
+        input data will be written into that dataset. In the dataset three
+        tables will be created, ``training``, ``validation`` and ``test``.  -
+        AIP_DATA_FORMAT = "bigquery". -  AIP_TRAINING_DATA_URI
+        ="bigquery_destination.dataset_*.training" -  AIP_VALIDATION_DATA_URI =
+        "bigquery_destination.dataset_*.validation" -  AIP_TEST_DATA_URI =
+        "bigquery_destination.dataset_*.test"
+        args (List[Unions[str, int, float]]): Command line arguments to be
+        passed to the Python script.
+        environment_variables (Dict[str, str]): Environment variables to be
+        passed to the container. Should be a dictionary where keys are
+        environment variable names and values are environment variable values
+        for those names. At most 10 environment variables can be specified. The
+        Name of the environment variable must be unique. environment_variables =
+        { 'MY_KEY': 'MY_VALUE' }
+        replica_count (int): The number of worker replicas. If replica count = 1
+        then one chief replica will be provisioned. If replica_count > 1 the
+        remainder will be provisioned as a worker replica pool.
+        machine_type (str): The type of machine to use for training.
+        accelerator_type (str): Hardware accelerator type. One of
+        ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100,
+        NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4, TPU_V2, TPU_V3
+        accelerator_count (int): The number of accelerators to attach to a
+        worker replica.
+        boot_disk_type (str): Type of the boot disk, default is `pd-ssd`. Valid
+          values: `pd-ssd` (Persistent Disk Solid State Drive) or `pd-standard`
+          (Persistent Disk Hard Disk Drive).
+        boot_disk_size_gb (int): Size in GB of the boot disk, default is 100GB.
+        boot disk size must be within the range of [100, 64000].
+        reduction_server_replica_count (int): The number of reduction server
+        replicas, default is 0.
+        reduction_server_machine_type (str): Optional. The type of machine to
+        use for reduction server.
+        reduction_server_container_uri (str): Optional. The Uri of the reduction
+        server container image. See details:
+          https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
+        training_fraction_split (float): Optional. The fraction of the input
+        data that is to be used to train the Model. This is ignored if Dataset
+        is not provided.
+        validation_fraction_split (float): Optional. The fraction of the input
+        data that is to be used to validate the Model. This is ignored if
+        Dataset is not provided.
+        test_fraction_split (float): Optional. The fraction of the input data
+        that is to be used to evaluate the Model. This is ignored if Dataset is
+        not provided.
+        training_filter_split (str): Optional. A filter on DataItems of the
+        Dataset. DataItems that match this filter are used to train the Model. A
+        filter with same syntax as the one used in DatasetService.ListDataItems
+        may be used. If a single DataItem is matched by more than one of the
+        FilterSplit filters, then it is assigned to the first set that applies
+        to it in the training, validation, test order. This is ignored if
+        Dataset is not provided.
+        validation_filter_split (str): Optional. A filter on DataItems of the
+        Dataset. DataItems that match this filter are used to validate the
+        Model. A filter with same syntax as the one used in
+        DatasetService.ListDataItems may be used. If a single DataItem is
+        matched by more than one of the FilterSplit filters, then it is assigned
+        to the first set that applies to it in the training, validation, test
+        order. This is ignored if Dataset is not provided.
+        test_filter_split (str): Optional. A filter on DataItems of the Dataset.
+        DataItems that match this filter are used to test the Model. A filter
+        with same syntax as the one used in DatasetService.ListDataItems may be
+        used. If a single DataItem is matched by more than one of the
+        FilterSplit filters, then it is assigned to the first set that applies
+        to it in the training, validation, test order. This is ignored if
+        Dataset is not provided.
+        predefined_split_column_name (str): Optional. The key is a name of one
+        of the Dataset's data columns. The value of the key (either the label's
+        value or value in the column) must be one of {``training``,
+        ``validation``, ``test``}, and it defines to which set the given piece
+        of data is assigned. If for a piece of data the key is not present or
+        has an invalid value, that piece is ignored by the pipeline. Supported
+        only for tabular and time series Datasets.
+        timestamp_split_column_name (str): Optional. The key is a name of one of
+        the Dataset's data columns. The value of the key values of the key (the
+        values in the column) must be in RFC 3339 `date-time` format, where
+        `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a piece of
+        data the key is not present or has an invalid value, that piece is
+        ignored by the pipeline.  Supported only for tabular and time series
+        Datasets.
+        timeout (int): The maximum job running time in seconds. The default is 7
+        days.
+        restart_job_on_worker_restart (bool): Restarts the entire CustomJob if a
+        worker gets restarted. This feature can be used by distributed training
+        jobs that are not resilient to workers leaving and joining a job.
+        enable_web_access (bool): Whether you want Vertex AI to enable
+        interactive shell access to training containers.
+            https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell
+        enable_dashboard_access (bool): Whether you want Vertex AI to enable
+        access to the customized dashboard to training containers.
+        tensorboard (str): Optional. The name of a Vertex AI
+        [Tensorboard][google.cloud.aiplatform.v1beta1.Tensorboard] resource to
+        which this CustomJob will upload Tensorboard logs. Format:
+        ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
+        The training script should write Tensorboard to following Vertex AI
+        environment
+            variable:  AIP_TENSORBOARD_LOG_DIR  `service_account` is required
+            with provided `tensorboard`. For more information on configuring
+            your service account please visit:
+            https://cloud.google.com/vertex-ai/docs/experiments/tensorboard-training
+        sync (bool): Whether to execute this method synchronously. If False,
+        this method will be executed in concurrent Future and any downstream
+        object will be immediately returned and synced when the Future has
+        completed.
+        create_request_timeout (float): Optional. The timeout for the create
+        request in seconds.
+        disable_retries (bool): Indicates if the job should retry for internal
+        errors after the job starts running. If True, overrides
+        `restart_job_on_worker_restart` to False.
+        persistent_resource_id (str): Optional. The ID of the PersistentResource
+        in the same Project and Location. If this is specified, the job will be
+        run on existing machines held by the PersistentResource instead of
+        on-demand short-live machines. The network, CMEK, and node pool configs
+        on the job should be consistent with those on the PersistentResource,
+        otherwise, the job will be rejected.
+        tpu_topology (str): Optional. Specifies the tpu topology to be used for
+        TPU training job. This field is required for TPU v5 versions. For
+        details on the TPU topology, refer to
+          https://cloud.google.com/tpu/docs/v5e#tpu-v5e-config. The topology
+          must be a supported value for the TPU machine type.
 
-                -  AIP_MODEL_DIR: a Cloud Storage URI of a directory intended for saving model artifacts, i.e. <base_output_dir>/model/
-                -  AIP_CHECKPOINT_DIR: a Cloud Storage URI of a directory intended for saving checkpoints, i.e. <base_output_dir>/checkpoints/
-                -  AIP_TENSORBOARD_LOG_DIR: a Cloud Storage URI of a directory intended for saving TensorBoard logs, i.e. <base_output_dir>/logs/
+    Returns:
+        model: The trained Vertex AI Model resource or None if training did not
+            produce a Vertex AI Model.
 
-            service_account (str):
-                Specifies the service account for workload run-as account.
-                Users submitting jobs must have act-as permission on this run-as account.
-            network (str):
-                The full name of the Compute Engine network to which the job
-                should be peered. For example, projects/12345/global/networks/myVPC.
-                Private services access must already be configured for the network.
-                If left unspecified, the network set in aiplatform.init will be used.
-                Otherwise, the job is not peered with any network.
-            bigquery_destination (str):
-                Provide this field if `dataset` is a BigQuery dataset.
-                The BigQuery project location where the training data is to
-                be written to. In the given project a new dataset is created
-                with name
-                ``dataset_<dataset-id>_<annotation-type>_<timestamp-of-training-call>``
-                where timestamp is in YYYY_MM_DDThh_mm_ss_sssZ format. All
-                training input data will be written into that dataset. In
-                the dataset three tables will be created, ``training``,
-                ``validation`` and ``test``.
+    Raises:
+        RuntimeError: If Training job has already been run, staging_bucket has
+        not
+            been set, or model_display_name was provided but required arguments
+            were not provided in constructor.
+    """
+    network = network or initializer.global_config.network
 
-                -  AIP_DATA_FORMAT = "bigquery".
-                -  AIP_TRAINING_DATA_URI ="bigquery_destination.dataset_*.training"
-                -  AIP_VALIDATION_DATA_URI = "bigquery_destination.dataset_*.validation"
-                -  AIP_TEST_DATA_URI = "bigquery_destination.dataset_*.test"
-            args (List[Unions[str, int, float]]):
-                Command line arguments to be passed to the Python script.
-            environment_variables (Dict[str, str]):
-                Environment variables to be passed to the container.
-                Should be a dictionary where keys are environment variable names
-                and values are environment variable values for those names.
-                At most 10 environment variables can be specified.
-                The Name of the environment variable must be unique.
+    worker_pool_specs, managed_model = self._prepare_and_validate_run(
+        model_display_name=model_display_name,
+        model_labels=model_labels,
+        replica_count=replica_count,
+        machine_type=machine_type,
+        accelerator_count=accelerator_count,
+        accelerator_type=accelerator_type,
+        boot_disk_type=boot_disk_type,
+        boot_disk_size_gb=boot_disk_size_gb,
+        reduction_server_replica_count=reduction_server_replica_count,
+        reduction_server_machine_type=reduction_server_machine_type,
+        tpu_topology=tpu_topology,
+    )
 
-                environment_variables = {
-                    'MY_KEY': 'MY_VALUE'
-                }
-            replica_count (int):
-                The number of worker replicas. If replica count = 1 then one chief
-                replica will be provisioned. If replica_count > 1 the remainder will be
-                provisioned as a worker replica pool.
-            machine_type (str):
-                The type of machine to use for training.
-            accelerator_type (str):
-                Hardware accelerator type. One of ACCELERATOR_TYPE_UNSPECIFIED,
-                NVIDIA_TESLA_K80, NVIDIA_TESLA_P100, NVIDIA_TESLA_V100, NVIDIA_TESLA_P4,
-                NVIDIA_TESLA_T4
-            accelerator_count (int):
-                The number of accelerators to attach to a worker replica.
-            boot_disk_type (str):
-                Type of the boot disk, default is `pd-ssd`.
-                Valid values: `pd-ssd` (Persistent Disk Solid State Drive) or
-                `pd-standard` (Persistent Disk Hard Disk Drive).
-            boot_disk_size_gb (int):
-                Size in GB of the boot disk, default is 100GB.
-                boot disk size must be within the range of [100, 64000].
-            reduction_server_replica_count (int):
-                The number of reduction server replicas, default is 0.
-            reduction_server_machine_type (str):
-                Optional. The type of machine to use for reduction server.
-            reduction_server_container_uri (str):
-                Optional. The Uri of the reduction server container image.
-                See details: https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
-            training_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to train
-                the Model. This is ignored if Dataset is not provided.
-            validation_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to validate
-                the Model. This is ignored if Dataset is not provided.
-            test_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to evaluate
-                the Model. This is ignored if Dataset is not provided.
-            training_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to train the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            validation_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to validate the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            test_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to test the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            predefined_split_column_name (str):
-                Optional. The key is a name of one of the Dataset's data
-                columns. The value of the key (either the label's value or
-                value in the column) must be one of {``training``,
-                ``validation``, ``test``}, and it defines to which set the
-                given piece of data is assigned. If for a piece of data the
-                key is not present or has an invalid value, that piece is
-                ignored by the pipeline.
+    return self._run(
+        dataset=dataset,
+        annotation_schema_uri=annotation_schema_uri,
+        worker_pool_specs=worker_pool_specs,
+        managed_model=managed_model,
+        model_id=model_id,
+        parent_model=parent_model,
+        is_default_version=is_default_version,
+        model_version_aliases=model_version_aliases,
+        model_version_description=model_version_description,
+        args=args,
+        environment_variables=environment_variables,
+        base_output_dir=base_output_dir,
+        service_account=service_account,
+        network=network,
+        bigquery_destination=bigquery_destination,
+        training_fraction_split=training_fraction_split,
+        validation_fraction_split=validation_fraction_split,
+        test_fraction_split=test_fraction_split,
+        training_filter_split=training_filter_split,
+        validation_filter_split=validation_filter_split,
+        test_filter_split=test_filter_split,
+        predefined_split_column_name=predefined_split_column_name,
+        timestamp_split_column_name=timestamp_split_column_name,
+        timeout=timeout,
+        restart_job_on_worker_restart=restart_job_on_worker_restart,
+        enable_web_access=enable_web_access,
+        enable_dashboard_access=enable_dashboard_access,
+        tensorboard=tensorboard,
+        reduction_server_container_uri=reduction_server_container_uri
+        if reduction_server_replica_count > 0
+        else None,
+        sync=sync,
+        create_request_timeout=create_request_timeout,
+        block=False,
+        disable_retries=disable_retries,
+        persistent_resource_id=persistent_resource_id,
+    )
 
-                Supported only for tabular and time series Datasets.
-            timestamp_split_column_name (str):
-                Optional. The key is a name of one of the Dataset's data
-                columns. The value of the key values of the key (the values in
-                the column) must be in RFC 3339 `date-time` format, where
-                `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a
-                piece of data the key is not present or has an invalid value,
-                that piece is ignored by the pipeline.
-
-                Supported only for tabular and time series Datasets.
-            timeout (int):
-                The maximum job running time in seconds. The default is 7 days.
-            restart_job_on_worker_restart (bool):
-                Restarts the entire CustomJob if a worker
-                gets restarted. This feature can be used by
-                distributed training jobs that are not resilient
-                to workers leaving and joining a job.
-            enable_web_access (bool):
-                Whether you want Vertex AI to enable interactive shell access
-                to training containers.
-                https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell
-            enable_dashboard_access (bool):
-                Whether you want Vertex AI to enable access to the customized dashboard
-                to training containers.
-            tensorboard (str):
-                Optional. The name of a Vertex AI
-                [Tensorboard][google.cloud.aiplatform.v1beta1.Tensorboard]
-                resource to which this CustomJob will upload Tensorboard
-                logs. Format:
-                ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
-
-                The training script should write Tensorboard to following Vertex AI environment
-                variable:
-
-                AIP_TENSORBOARD_LOG_DIR
-
-                `service_account` is required with provided `tensorboard`.
-                For more information on configuring your service account please visit:
-                https://cloud.google.com/vertex-ai/docs/experiments/tensorboard-training
-            sync (bool):
-                Whether to execute this method synchronously. If False, this method
-                will be executed in concurrent Future and any downstream object will
-                be immediately returned and synced when the Future has completed.
-            create_request_timeout (float):
-                Optional. The timeout for the create request in seconds.
-            disable_retries (bool):
-                Indicates if the job should retry for internal errors after the
-                job starts running. If True, overrides
-                `restart_job_on_worker_restart` to False.
-            persistent_resource_id (str):
-                Optional. The ID of the PersistentResource in the same Project
-                and Location. If this is specified, the job will be run on
-                existing machines held by the PersistentResource instead of
-                on-demand short-live machines. The network, CMEK, and node pool
-                configs on the job should be consistent with those on the
-                PersistentResource, otherwise, the job will be rejected.
-
-        Returns:
-            model: The trained Vertex AI Model resource or None if training did not
-                produce a Vertex AI Model.
-
-        Raises:
-            RuntimeError: If Training job has already been run, staging_bucket has not
-                been set, or model_display_name was provided but required arguments
-                were not provided in constructor.
-        """
-        network = network or initializer.global_config.network
-        service_account = service_account or initializer.global_config.service_account
-
-        worker_pool_specs, managed_model = self._prepare_and_validate_run(
-            model_display_name=model_display_name,
-            model_labels=model_labels,
-            replica_count=replica_count,
-            machine_type=machine_type,
-            accelerator_count=accelerator_count,
-            accelerator_type=accelerator_type,
-            boot_disk_type=boot_disk_type,
-            boot_disk_size_gb=boot_disk_size_gb,
-            reduction_server_replica_count=reduction_server_replica_count,
-            reduction_server_machine_type=reduction_server_machine_type,
-        )
-
-        return self._run(
-            dataset=dataset,
-            annotation_schema_uri=annotation_schema_uri,
-            worker_pool_specs=worker_pool_specs,
-            managed_model=managed_model,
-            model_id=model_id,
-            parent_model=parent_model,
-            is_default_version=is_default_version,
-            model_version_aliases=model_version_aliases,
-            model_version_description=model_version_description,
-            args=args,
-            environment_variables=environment_variables,
-            base_output_dir=base_output_dir,
-            service_account=service_account,
-            network=network,
-            bigquery_destination=bigquery_destination,
-            training_fraction_split=training_fraction_split,
-            validation_fraction_split=validation_fraction_split,
-            test_fraction_split=test_fraction_split,
-            training_filter_split=training_filter_split,
-            validation_filter_split=validation_filter_split,
-            test_filter_split=test_filter_split,
-            predefined_split_column_name=predefined_split_column_name,
-            timestamp_split_column_name=timestamp_split_column_name,
-            timeout=timeout,
-            restart_job_on_worker_restart=restart_job_on_worker_restart,
-            enable_web_access=enable_web_access,
-            enable_dashboard_access=enable_dashboard_access,
-            tensorboard=tensorboard,
-            reduction_server_container_uri=reduction_server_container_uri
-            if reduction_server_replica_count > 0
-            else None,
-            sync=sync,
-            create_request_timeout=create_request_timeout,
-            disable_retries=disable_retries,
-            persistent_resource_id=persistent_resource_id,
-        )
-
-    def submit(
-        self,
-        dataset: Optional[
-            Union[
-                datasets.ImageDataset,
-                datasets.TabularDataset,
-                datasets.TextDataset,
-                datasets.VideoDataset,
-            ]
-        ] = None,
-        annotation_schema_uri: Optional[str] = None,
-        model_display_name: Optional[str] = None,
-        model_labels: Optional[Dict[str, str]] = None,
-        model_id: Optional[str] = None,
-        parent_model: Optional[str] = None,
-        is_default_version: Optional[bool] = True,
-        model_version_aliases: Optional[Sequence[str]] = None,
-        model_version_description: Optional[str] = None,
-        base_output_dir: Optional[str] = None,
-        service_account: Optional[str] = None,
-        network: Optional[str] = None,
-        bigquery_destination: Optional[str] = None,
-        args: Optional[List[Union[str, float, int]]] = None,
-        environment_variables: Optional[Dict[str, str]] = None,
-        replica_count: int = 1,
-        machine_type: str = "n1-standard-4",
-        accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
-        accelerator_count: int = 0,
-        boot_disk_type: str = "pd-ssd",
-        boot_disk_size_gb: int = 100,
-        reduction_server_replica_count: int = 0,
-        reduction_server_machine_type: Optional[str] = None,
-        reduction_server_container_uri: Optional[str] = None,
-        training_fraction_split: Optional[float] = None,
-        validation_fraction_split: Optional[float] = None,
-        test_fraction_split: Optional[float] = None,
-        training_filter_split: Optional[str] = None,
-        validation_filter_split: Optional[str] = None,
-        test_filter_split: Optional[str] = None,
-        predefined_split_column_name: Optional[str] = None,
-        timestamp_split_column_name: Optional[str] = None,
-        timeout: Optional[int] = None,
-        restart_job_on_worker_restart: bool = False,
-        enable_web_access: bool = False,
-        enable_dashboard_access: bool = False,
-        tensorboard: Optional[str] = None,
-        sync=True,
-        create_request_timeout: Optional[float] = None,
-        disable_retries: bool = False,
-        persistent_resource_id: Optional[str] = None,
-    ) -> Optional[models.Model]:
-        """Submits the custom training job without blocking until completion.
-
-        Distributed Training Support:
-        If replica count = 1 then one chief replica will be provisioned. If
-        replica_count > 1 the remainder will be provisioned as a worker replica pool.
-        ie: replica_count = 10 will result in 1 chief and 9 workers
-        All replicas have same machine_type, accelerator_type, and accelerator_count
-
-        If training on a Vertex AI dataset, you can use one of the following split configurations:
-            Data fraction splits:
-            Any of ``training_fraction_split``, ``validation_fraction_split`` and
-            ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
-            the provided ones sum to less than 1, the remainder is assigned to sets as
-            decided by Vertex AI. If none of the fractions are set, by default roughly 80%
-            of data will be used for training, 10% for validation, and 10% for test.
-
-            Data filter splits:
-            Assigns input data to training, validation, and test sets
-            based on the given filters, data pieces not matched by any
-            filter are ignored. Currently only supported for Datasets
-            containing DataItems.
-            If any of the filters in this message are to match nothing, then
-            they can be set as '-' (the minus sign).
-            If using filter splits, all of ``training_filter_split``, ``validation_filter_split`` and
-            ``test_filter_split`` must be provided.
-            Supported only for unstructured Datasets.
-
-            Predefined splits:
-            Assigns input data to training, validation, and test sets based on the value of a provided key.
-            If using predefined splits, ``predefined_split_column_name`` must be provided.
-            Supported only for tabular Datasets.
-
-            Timestamp splits:
-            Assigns input data to training, validation, and test sets
-            based on a provided timestamps. The youngest data pieces are
-            assigned to training set, next to validation set, and the oldest
-            to the test set.
-            Supported only for tabular Datasets.
-
-        Args:
-            dataset (Union[datasets.ImageDataset,datasets.TabularDataset,datasets.TextDataset,datasets.VideoDataset]):
-                Vertex AI to fit this training against. Custom training script should
-                retrieve datasets through passed in environment variables uris:
-
-                os.environ["AIP_TRAINING_DATA_URI"]
-                os.environ["AIP_VALIDATION_DATA_URI"]
-                os.environ["AIP_TEST_DATA_URI"]
-
-                Additionally the dataset format is passed in as:
-
-                os.environ["AIP_DATA_FORMAT"]
-            annotation_schema_uri (str):
-                Google Cloud Storage URI points to a YAML file describing
-                annotation schema. The schema is defined as an OpenAPI 3.0.2
-                [Schema Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#schema-object) The schema files
-                that can be used here are found in
-                gs://google-cloud-aiplatform/schema/dataset/annotation/,
-                note that the chosen schema must be consistent with
-                ``metadata``
-                of the Dataset specified by
-                ``dataset_id``.
-
-                Only Annotations that both match this schema and belong to
-                DataItems not ignored by the split method are used in
-                respectively training, validation or test role, depending on
-                the role of the DataItem they are on.
-
-                When used in conjunction with
-                ``annotations_filter``,
-                the Annotations used for training are filtered by both
-                ``annotations_filter``
-                and
-                ``annotation_schema_uri``.
-            model_display_name (str):
-                If the script produces a managed Vertex AI Model. The display name of
-                the Model. The name can be up to 128 characters long and can be consist
-                of any UTF-8 characters.
-
-                If not provided upon creation, the job's display_name is used.
-            model_labels (Dict[str, str]):
-                Optional. The labels with user-defined metadata to
-                organize your Models.
-                Label keys and values can be no longer than 64
-                characters (Unicode codepoints), can only
-                contain lowercase letters, numeric characters,
-                underscores and dashes. International characters
-                are allowed.
-                See https://goo.gl/xmQnxf for more information
-                and examples of labels.
-            model_id (str):
-                Optional. The ID to use for the Model produced by this job,
-                which will become the final component of the model resource name.
-                This value may be up to 63 characters, and valid characters
-                are `[a-z0-9_-]`. The first character cannot be a number or hyphen.
-            parent_model (str):
-                Optional. The resource name or model ID of an existing model.
-                The new model uploaded by this job will be a version of `parent_model`.
-
-                Only set this field when training a new version of an existing model.
-            is_default_version (bool):
-                Optional. When set to True, the newly uploaded model version will
-                automatically have alias "default" included. Subsequent uses of
-                the model produced by this job without a version specified will
-                use this "default" version.
-
-                When set to False, the "default" alias will not be moved.
-                Actions targeting the model version produced by this job will need
-                to specifically reference this version by ID or alias.
-
-                New model uploads, i.e. version 1, will always be "default" aliased.
-            model_version_aliases (Sequence[str]):
-                Optional. User provided version aliases so that the model version
-                uploaded by this job can be referenced via alias instead of
-                auto-generated version ID. A default version alias will be created
-                for the first version of the model.
-
-                The format is [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
-            model_version_description (str):
-               Optional. The description of the model version being uploaded by this job.
-            base_output_dir (str):
-                GCS output directory of job. If not provided a
-                timestamped directory in the staging directory will be used.
-
-                Vertex AI sets the following environment variables when it runs your training code:
-
-                -  AIP_MODEL_DIR: a Cloud Storage URI of a directory intended for saving model artifacts, i.e. <base_output_dir>/model/
-                -  AIP_CHECKPOINT_DIR: a Cloud Storage URI of a directory intended for saving checkpoints, i.e. <base_output_dir>/checkpoints/
-                -  AIP_TENSORBOARD_LOG_DIR: a Cloud Storage URI of a directory intended for saving TensorBoard logs, i.e. <base_output_dir>/logs/
-
-            service_account (str):
-                Specifies the service account for workload run-as account.
-                Users submitting jobs must have act-as permission on this run-as account.
-            network (str):
-                The full name of the Compute Engine network to which the job
-                should be peered. For example, projects/12345/global/networks/myVPC.
-                Private services access must already be configured for the network.
-                If left unspecified, the network set in aiplatform.init will be used.
-                Otherwise, the job is not peered with any network.
-            bigquery_destination (str):
-                Provide this field if `dataset` is a BigQuery dataset.
-                The BigQuery project location where the training data is to
-                be written to. In the given project a new dataset is created
-                with name
-                ``dataset_<dataset-id>_<annotation-type>_<timestamp-of-training-call>``
-                where timestamp is in YYYY_MM_DDThh_mm_ss_sssZ format. All
-                training input data will be written into that dataset. In
-                the dataset three tables will be created, ``training``,
-                ``validation`` and ``test``.
-
-                -  AIP_DATA_FORMAT = "bigquery".
-                -  AIP_TRAINING_DATA_URI ="bigquery_destination.dataset_*.training"
-                -  AIP_VALIDATION_DATA_URI = "bigquery_destination.dataset_*.validation"
-                -  AIP_TEST_DATA_URI = "bigquery_destination.dataset_*.test"
-            args (List[Unions[str, int, float]]):
-                Command line arguments to be passed to the Python script.
-            environment_variables (Dict[str, str]):
-                Environment variables to be passed to the container.
-                Should be a dictionary where keys are environment variable names
-                and values are environment variable values for those names.
-                At most 10 environment variables can be specified.
-                The Name of the environment variable must be unique.
-
-                environment_variables = {
-                    'MY_KEY': 'MY_VALUE'
-                }
-            replica_count (int):
-                The number of worker replicas. If replica count = 1 then one chief
-                replica will be provisioned. If replica_count > 1 the remainder will be
-                provisioned as a worker replica pool.
-            machine_type (str):
-                The type of machine to use for training.
-            accelerator_type (str):
-                Hardware accelerator type. One of ACCELERATOR_TYPE_UNSPECIFIED,
-                NVIDIA_TESLA_K80, NVIDIA_TESLA_P100, NVIDIA_TESLA_V100, NVIDIA_TESLA_P4,
-                NVIDIA_TESLA_T4
-            accelerator_count (int):
-                The number of accelerators to attach to a worker replica.
-            boot_disk_type (str):
-                Type of the boot disk, default is `pd-ssd`.
-                Valid values: `pd-ssd` (Persistent Disk Solid State Drive) or
-                `pd-standard` (Persistent Disk Hard Disk Drive).
-            boot_disk_size_gb (int):
-                Size in GB of the boot disk, default is 100GB.
-                boot disk size must be within the range of [100, 64000].
-            reduction_server_replica_count (int):
-                The number of reduction server replicas, default is 0.
-            reduction_server_machine_type (str):
-                Optional. The type of machine to use for reduction server.
-            reduction_server_container_uri (str):
-                Optional. The Uri of the reduction server container image.
-                See details: https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
-            training_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to train
-                the Model. This is ignored if Dataset is not provided.
-            validation_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to validate
-                the Model. This is ignored if Dataset is not provided.
-            test_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to evaluate
-                the Model. This is ignored if Dataset is not provided.
-            training_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to train the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            validation_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to validate the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            test_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to test the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            predefined_split_column_name (str):
-                Optional. The key is a name of one of the Dataset's data
-                columns. The value of the key (either the label's value or
-                value in the column) must be one of {``training``,
-                ``validation``, ``test``}, and it defines to which set the
-                given piece of data is assigned. If for a piece of data the
-                key is not present or has an invalid value, that piece is
-                ignored by the pipeline.
-
-                Supported only for tabular and time series Datasets.
-            timestamp_split_column_name (str):
-                Optional. The key is a name of one of the Dataset's data
-                columns. The value of the key values of the key (the values in
-                the column) must be in RFC 3339 `date-time` format, where
-                `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a
-                piece of data the key is not present or has an invalid value,
-                that piece is ignored by the pipeline.
-
-                Supported only for tabular and time series Datasets.
-            timeout (int):
-                The maximum job running time in seconds. The default is 7 days.
-            restart_job_on_worker_restart (bool):
-                Restarts the entire CustomJob if a worker
-                gets restarted. This feature can be used by
-                distributed training jobs that are not resilient
-                to workers leaving and joining a job.
-            enable_web_access (bool):
-                Whether you want Vertex AI to enable interactive shell access
-                to training containers.
-                https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell
-            enable_dashboard_access (bool):
-                Whether you want Vertex AI to enable access to the customized dashboard
-                to training containers.
-            tensorboard (str):
-                Optional. The name of a Vertex AI
-                [Tensorboard][google.cloud.aiplatform.v1beta1.Tensorboard]
-                resource to which this CustomJob will upload Tensorboard
-                logs. Format:
-                ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
-
-                The training script should write Tensorboard to following Vertex AI environment
-                variable:
-
-                AIP_TENSORBOARD_LOG_DIR
-
-                `service_account` is required with provided `tensorboard`.
-                For more information on configuring your service account please visit:
-                https://cloud.google.com/vertex-ai/docs/experiments/tensorboard-training
-            sync (bool):
-                Whether to execute this method synchronously. If False, this method
-                will be executed in concurrent Future and any downstream object will
-                be immediately returned and synced when the Future has completed.
-            create_request_timeout (float):
-                Optional. The timeout for the create request in seconds.
-            disable_retries (bool):
-                Indicates if the job should retry for internal errors after the
-                job starts running. If True, overrides
-                `restart_job_on_worker_restart` to False.
-            persistent_resource_id (str):
-                Optional. The ID of the PersistentResource in the same Project
-                and Location. If this is specified, the job will be run on
-                existing machines held by the PersistentResource instead of
-                on-demand short-live machines. The network, CMEK, and node pool
-                configs on the job should be consistent with those on the
-                PersistentResource, otherwise, the job will be rejected.
-
-        Returns:
-            model: The trained Vertex AI Model resource or None if training did not
-                produce a Vertex AI Model.
-
-        Raises:
-            RuntimeError: If Training job has already been run, staging_bucket has not
-                been set, or model_display_name was provided but required arguments
-                were not provided in constructor.
-        """
-        network = network or initializer.global_config.network
-
-        worker_pool_specs, managed_model = self._prepare_and_validate_run(
-            model_display_name=model_display_name,
-            model_labels=model_labels,
-            replica_count=replica_count,
-            machine_type=machine_type,
-            accelerator_count=accelerator_count,
-            accelerator_type=accelerator_type,
-            boot_disk_type=boot_disk_type,
-            boot_disk_size_gb=boot_disk_size_gb,
-            reduction_server_replica_count=reduction_server_replica_count,
-            reduction_server_machine_type=reduction_server_machine_type,
-        )
-
-        return self._run(
-            dataset=dataset,
-            annotation_schema_uri=annotation_schema_uri,
-            worker_pool_specs=worker_pool_specs,
-            managed_model=managed_model,
-            model_id=model_id,
-            parent_model=parent_model,
-            is_default_version=is_default_version,
-            model_version_aliases=model_version_aliases,
-            model_version_description=model_version_description,
-            args=args,
-            environment_variables=environment_variables,
-            base_output_dir=base_output_dir,
-            service_account=service_account,
-            network=network,
-            bigquery_destination=bigquery_destination,
-            training_fraction_split=training_fraction_split,
-            validation_fraction_split=validation_fraction_split,
-            test_fraction_split=test_fraction_split,
-            training_filter_split=training_filter_split,
-            validation_filter_split=validation_filter_split,
-            test_filter_split=test_filter_split,
-            predefined_split_column_name=predefined_split_column_name,
-            timestamp_split_column_name=timestamp_split_column_name,
-            timeout=timeout,
-            restart_job_on_worker_restart=restart_job_on_worker_restart,
-            enable_web_access=enable_web_access,
-            enable_dashboard_access=enable_dashboard_access,
-            tensorboard=tensorboard,
-            reduction_server_container_uri=reduction_server_container_uri
-            if reduction_server_replica_count > 0
-            else None,
-            sync=sync,
-            create_request_timeout=create_request_timeout,
-            block=False,
-            disable_retries=disable_retries,
-            persistent_resource_id=persistent_resource_id,
-        )
-
-    @base.optional_sync(construct_object_on_arg="managed_model")
-    def _run(
+  @base.optional_sync(construct_object_on_arg="managed_model")
+  def _run(
         self,
         dataset: Optional[
             Union[
@@ -5157,7 +4981,7 @@ class CustomContainerTrainingJob(_CustomTrainingJob):
         disable_retries: bool = False,
         persistent_resource_id: Optional[str] = None,
     ) -> Optional[models.Model]:
-        """Packages local script and launches training_job.
+    """Packages local script and launches training_job.
         Args:
             dataset (
                 Union[
@@ -5354,34 +5178,34 @@ class CustomContainerTrainingJob(_CustomTrainingJob):
                 produce a Vertex AI Model.
         """
 
-        for spec_order, spec in enumerate(worker_pool_specs):
+    for spec_order, spec in enumerate(worker_pool_specs):
 
-            if not spec:
-                continue
+      if not spec:
+        continue
 
-            if (
+      if (
                 spec_order == worker_spec_utils._SPEC_ORDERS["server_spec"]
                 and reduction_server_container_uri
             ):
-                spec["container_spec"] = {
+        spec["container_spec"] = {
                     "image_uri": reduction_server_container_uri,
                 }
-            else:
-                spec["containerSpec"] = {"imageUri": self._container_uri}
+      else:
+        spec["containerSpec"] = {"imageUri": self._container_uri}
 
-                if self._command:
-                    spec["containerSpec"]["command"] = self._command
+        if self._command:
+          spec["containerSpec"]["command"] = self._command
 
-                if args:
-                    spec["containerSpec"]["args"] = args
+        if args:
+          spec["containerSpec"]["args"] = args
 
-                if environment_variables:
-                    spec["containerSpec"]["env"] = [
+        if environment_variables:
+          spec["containerSpec"]["env"] = [
                         {"name": key, "value": value}
                         for key, value in environment_variables.items()
                     ]
 
-        (
+    (
             training_task_inputs,
             base_output_dir,
         ) = self._prepare_training_task_inputs_and_output_dir(
@@ -5398,7 +5222,7 @@ class CustomContainerTrainingJob(_CustomTrainingJob):
             persistent_resource_id=persistent_resource_id,
         )
 
-        model = self._run_job(
+    model = self._run_job(
             training_task_definition=schema.training_job.definition.custom_task,
             training_task_inputs=training_task_inputs,
             dataset=dataset,
@@ -5423,7 +5247,7 @@ class CustomContainerTrainingJob(_CustomTrainingJob):
             block=block,
         )
 
-        return model
+    return model
 
 
 class AutoMLTabularTrainingJob(_TrainingJob):
@@ -7004,14 +6828,14 @@ class AutoMLImageTrainingJob(_TrainingJob):
 
 
 class CustomPythonPackageTrainingJob(_CustomTrainingJob):
-    """Class to launch a Custom Training Job in Vertex AI using a Python
+  """Class to launch a Custom Training Job in Vertex AI using a Python
     Package.
 
     Takes a training implementation as a python package and executes
     that package in Cloud Vertex AI Training.
     """
 
-    def __init__(
+  def __init__(
         self,
         # TODO(b/223262536): Make display_name parameter fully optional in next major release
         display_name: str,
@@ -7039,7 +6863,7 @@ class CustomPythonPackageTrainingJob(_CustomTrainingJob):
         model_encryption_spec_key_name: Optional[str] = None,
         staging_bucket: Optional[str] = None,
     ):
-        """Constructs a Custom Training Job from a Python Package.
+    """Constructs a Custom Training Job from a Python Package.
 
         job = aiplatform.CustomPythonPackageTrainingJob(
             display_name='test-train',
@@ -7230,9 +7054,9 @@ class CustomPythonPackageTrainingJob(_CustomTrainingJob):
                 Optional. Bucket used to stage source and training artifacts. Overrides
                 staging_bucket set in aiplatform.init.
         """
-        if not display_name:
-            display_name = self.__class__._generate_display_name()
-        super().__init__(
+    if not display_name:
+      display_name = self.__class__._generate_display_name()
+    super().__init__(
             display_name=display_name,
             project=project,
             location=location,
@@ -7257,413 +7081,374 @@ class CustomPythonPackageTrainingJob(_CustomTrainingJob):
             staging_bucket=staging_bucket,
         )
 
-        if isinstance(python_package_gcs_uri, str):
-            self._package_gcs_uri = [python_package_gcs_uri]
-        elif isinstance(python_package_gcs_uri, list):
-            self._package_gcs_uri = python_package_gcs_uri
-        else:
-            raise ValueError("'python_package_gcs_uri' must be a string or list.")
-        self._python_module = python_module_name
+    if isinstance(python_package_gcs_uri, str):
+      self._package_gcs_uri = [python_package_gcs_uri]
+    elif isinstance(python_package_gcs_uri, list):
+      self._package_gcs_uri = python_package_gcs_uri
+    else:
+      raise ValueError("'python_package_gcs_uri' must be a string or list.")
+    self._python_module = python_module_name
 
-    def run(
-        self,
-        dataset: Optional[
-            Union[
-                datasets.ImageDataset,
-                datasets.TabularDataset,
-                datasets.TextDataset,
-                datasets.VideoDataset,
-            ]
-        ] = None,
-        annotation_schema_uri: Optional[str] = None,
-        model_display_name: Optional[str] = None,
-        model_labels: Optional[Dict[str, str]] = None,
-        model_id: Optional[str] = None,
-        parent_model: Optional[str] = None,
-        is_default_version: Optional[bool] = True,
-        model_version_aliases: Optional[Sequence[str]] = None,
-        model_version_description: Optional[str] = None,
-        base_output_dir: Optional[str] = None,
-        service_account: Optional[str] = None,
-        network: Optional[str] = None,
-        bigquery_destination: Optional[str] = None,
-        args: Optional[List[Union[str, float, int]]] = None,
-        environment_variables: Optional[Dict[str, str]] = None,
-        replica_count: int = 1,
-        machine_type: str = "n1-standard-4",
-        accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
-        accelerator_count: int = 0,
-        boot_disk_type: str = "pd-ssd",
-        boot_disk_size_gb: int = 100,
-        reduction_server_replica_count: int = 0,
-        reduction_server_machine_type: Optional[str] = None,
-        reduction_server_container_uri: Optional[str] = None,
-        training_fraction_split: Optional[float] = None,
-        validation_fraction_split: Optional[float] = None,
-        test_fraction_split: Optional[float] = None,
-        training_filter_split: Optional[str] = None,
-        validation_filter_split: Optional[str] = None,
-        test_filter_split: Optional[str] = None,
-        predefined_split_column_name: Optional[str] = None,
-        timestamp_split_column_name: Optional[str] = None,
-        timeout: Optional[int] = None,
-        restart_job_on_worker_restart: bool = False,
-        enable_web_access: bool = False,
-        enable_dashboard_access: bool = False,
-        tensorboard: Optional[str] = None,
-        sync=True,
-        create_request_timeout: Optional[float] = None,
-        disable_retries: bool = False,
-        persistent_resource_id: Optional[str] = None,
-    ) -> Optional[models.Model]:
-        """Runs the custom training job.
+  def run(
+      self,
+      dataset: Optional[
+          Union[
+              datasets.ImageDataset,
+              datasets.TabularDataset,
+              datasets.TextDataset,
+              datasets.VideoDataset,
+          ]
+      ] = None,
+      annotation_schema_uri: Optional[str] = None,
+      model_display_name: Optional[str] = None,
+      model_labels: Optional[Dict[str, str]] = None,
+      model_id: Optional[str] = None,
+      parent_model: Optional[str] = None,
+      is_default_version: Optional[bool] = True,
+      model_version_aliases: Optional[Sequence[str]] = None,
+      model_version_description: Optional[str] = None,
+      base_output_dir: Optional[str] = None,
+      service_account: Optional[str] = None,
+      network: Optional[str] = None,
+      bigquery_destination: Optional[str] = None,
+      args: Optional[List[Union[str, float, int]]] = None,
+      environment_variables: Optional[Dict[str, str]] = None,
+      replica_count: int = 1,
+      machine_type: str = "n1-standard-4",
+      accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
+      accelerator_count: int = 0,
+      boot_disk_type: str = "pd-ssd",
+      boot_disk_size_gb: int = 100,
+      reduction_server_replica_count: int = 0,
+      reduction_server_machine_type: Optional[str] = None,
+      reduction_server_container_uri: Optional[str] = None,
+      training_fraction_split: Optional[float] = None,
+      validation_fraction_split: Optional[float] = None,
+      test_fraction_split: Optional[float] = None,
+      training_filter_split: Optional[str] = None,
+      validation_filter_split: Optional[str] = None,
+      test_filter_split: Optional[str] = None,
+      predefined_split_column_name: Optional[str] = None,
+      timestamp_split_column_name: Optional[str] = None,
+      timeout: Optional[int] = None,
+      restart_job_on_worker_restart: bool = False,
+      enable_web_access: bool = False,
+      enable_dashboard_access: bool = False,
+      tensorboard: Optional[str] = None,
+      sync=True,
+      create_request_timeout: Optional[float] = None,
+      disable_retries: bool = False,
+      persistent_resource_id: Optional[str] = None,
+      tpu_topology: Optional[str] = None,
+  ) -> Optional[models.Model]:
+    """Runs the custom training job.
 
-        Distributed Training Support:
-        If replica count = 1 then one chief replica will be provisioned. If
-        replica_count > 1 the remainder will be provisioned as a worker replica pool.
-        ie: replica_count = 10 will result in 1 chief and 9 workers
-        All replicas have same machine_type, accelerator_type, and accelerator_count
+    Distributed Training Support:
+    If replica count = 1 then one chief replica will be provisioned. If
+    replica_count > 1 the remainder will be provisioned as a worker replica
+    pool.
+    ie: replica_count = 10 will result in 1 chief and 9 workers
+    All replicas have same machine_type, accelerator_type, and accelerator_count
 
-        If training on a Vertex AI dataset, you can use one of the following split configurations:
-            Data fraction splits:
-            Any of ``training_fraction_split``, ``validation_fraction_split`` and
-            ``test_fraction_split`` may optionally be provided, they must sum to up to 1. If
-            the provided ones sum to less than 1, the remainder is assigned to sets as
-            decided by Vertex AI. If none of the fractions are set, by default roughly 80%
-            of data will be used for training, 10% for validation, and 10% for test.
+    If training on a Vertex AI dataset, you can use one of the following split
+    configurations:
+        Data fraction splits:
+        Any of ``training_fraction_split``, ``validation_fraction_split`` and
+        ``test_fraction_split`` may optionally be provided, they must sum to up
+        to 1. If
+        the provided ones sum to less than 1, the remainder is assigned to sets
+        as
+        decided by Vertex AI. If none of the fractions are set, by default
+        roughly 80%
+        of data will be used for training, 10% for validation, and 10% for test.
 
-            Data filter splits:
-            Assigns input data to training, validation, and test sets
-            based on the given filters, data pieces not matched by any
-            filter are ignored. Currently only supported for Datasets
-            containing DataItems.
-            If any of the filters in this message are to match nothing, then
-            they can be set as '-' (the minus sign).
-            If using filter splits, all of ``training_filter_split``, ``validation_filter_split`` and
-            ``test_filter_split`` must be provided.
-            Supported only for unstructured Datasets.
+        Data filter splits:
+        Assigns input data to training, validation, and test sets
+        based on the given filters, data pieces not matched by any
+        filter are ignored. Currently only supported for Datasets
+        containing DataItems.
+        If any of the filters in this message are to match nothing, then
+        they can be set as '-' (the minus sign).
+        If using filter splits, all of ``training_filter_split``,
+        ``validation_filter_split`` and
+        ``test_filter_split`` must be provided.
+        Supported only for unstructured Datasets.
 
-            Predefined splits:
-            Assigns input data to training, validation, and test sets based on the value of a provided key.
-            If using predefined splits, ``predefined_split_column_name`` must be provided.
-            Supported only for tabular Datasets.
+        Predefined splits:
+        Assigns input data to training, validation, and test sets based on the
+        value of a provided key.
+        If using predefined splits, ``predefined_split_column_name`` must be
+        provided.
+        Supported only for tabular Datasets.
 
-            Timestamp splits:
-            Assigns input data to training, validation, and test sets
-            based on a provided timestamps. The youngest data pieces are
-            assigned to training set, next to validation set, and the oldest
-            to the test set.
-            Supported only for tabular Datasets.
+        Timestamp splits:
+        Assigns input data to training, validation, and test sets
+        based on a provided timestamps. The youngest data pieces are
+        assigned to training set, next to validation set, and the oldest
+        to the test set.
+        Supported only for tabular Datasets.
 
-        Args:
-            dataset (Union[datasets.ImageDataset,datasets.TabularDataset,datasets.TextDataset,datasets.VideoDataset,]):
-                Vertex AI to fit this training against. Custom training script should
-                retrieve datasets through passed in environment variables uris:
+    Args: dataset
+    (Union[datasets.ImageDataset,datasets.TabularDataset,datasets.TextDataset,datasets.VideoDataset,]):
+    Vertex AI to fit this training against. Custom training script should
+    retrieve datasets through passed in environment variables uris:
+    os.environ["AIP_TRAINING_DATA_URI"] os.environ["AIP_VALIDATION_DATA_URI"]
+    os.environ["AIP_TEST_DATA_URI"] Additionally the dataset format is passed in
+    as: os.environ["AIP_DATA_FORMAT"]
+        annotation_schema_uri (str): Google Cloud Storage URI points to a YAML
+        file describing annotation schema. The schema is defined as an OpenAPI
+        3.0.2 [Schema
+        Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#schema-object)
+        The schema files that can be used here are found in
+            gs://google-cloud-aiplatform/schema/dataset/annotation/, note that
+            the chosen schema must be consistent with ``metadata`` of the
+            Dataset specified by ``dataset_id``.  Only Annotations that both
+            match this schema and belong to DataItems not ignored by the split
+            method are used in respectively training, validation or test role,
+            depending on the role of the DataItem they are on.  When used in
+            conjunction with ``annotations_filter``, the Annotations used for
+            training are filtered by both ``annotations_filter`` and
+            ``annotation_schema_uri``.
+        model_display_name (str): If the script produces a managed Vertex AI
+        Model. The display name of the Model. The name can be up to 128
+        characters long and can be consist of any UTF-8 characters.  If not
+        provided upon creation, the job's display_name is used.
+        model_labels (Dict[str, str]): Optional. The labels with user-defined
+        metadata to organize your Models. Label keys and values can be no longer
+        than 64 characters (Unicode codepoints), can only contain lowercase
+        letters, numeric characters, underscores and dashes. International
+        characters are allowed. See https://goo.gl/xmQnxf for more information
+        and examples of labels.
+        model_id (str): Optional. The ID to use for the Model produced by this
+        job, which will become the final component of the model resource name.
+        This value may be up to 63 characters, and valid characters are
+        `[a-z0-9_-]`. The first character cannot be a number or hyphen.
+        parent_model (str): Optional. The resource name or model ID of an
+        existing model. The new model uploaded by this job will be a version of
+        `parent_model`.  Only set this field when training a new version of an
+        existing model.
+        is_default_version (bool): Optional. When set to True, the newly
+        uploaded model version will automatically have alias "default" included.
+        Subsequent uses of the model produced by this job without a version
+        specified will use this "default" version.  When set to False, the
+        "default" alias will not be moved. Actions targeting the model version
+        produced by this job will need to specifically reference this version by
+        ID or alias.  New model uploads, i.e. version 1, will always be
+        "default" aliased.
+        model_version_aliases (Sequence[str]): Optional. User provided version
+        aliases so that the model version uploaded by this job can be referenced
+        via alias instead of auto-generated version ID. A default version alias
+        will be created for the first version of the model.  The format is
+        [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
+        model_version_description (str): Optional. The description of the model
+        version being uploaded by this job.
+        base_output_dir (str): GCS output directory of job. If not provided a
+        timestamped directory in the staging directory will be used.  Vertex AI
+        sets the following environment variables when it runs your training
+          code:  -  AIP_MODEL_DIR: a Cloud Storage URI of a directory intended
+          for saving model artifacts, i.e. <base_output_dir>/model/ -
+          AIP_CHECKPOINT_DIR: a Cloud Storage URI of a directory intended for
+          saving checkpoints, i.e. <base_output_dir>/checkpoints/ -
+          AIP_TENSORBOARD_LOG_DIR: a Cloud Storage URI of a directory intended
+          for saving TensorBoard logs, i.e. <base_output_dir>/logs/
+        service_account (str): Specifies the service account for workload run-as
+        account. Users submitting jobs must have act-as permission on this
+        run-as account. If not specified, uses the service account set in
+        aiplatform.init.
+        network (str): The full name of the Compute Engine network to which the
+        job should be peered. For example, projects/12345/global/networks/myVPC.
+        Private services access must already be configured for the network. If
+        left unspecified, the network set in aiplatform.init will be used.
+        Otherwise, the job is not peered with any network.
+        bigquery_destination (str): Provide this field if `dataset` is a
+        BigQuery dataset. The BigQuery project location where the training data
+        is to be written to. In the given project a new dataset is created with
+        name
+        ``dataset_<dataset-id>_<annotation-type>_<timestamp-of-training-call>``
+        where timestamp is in YYYY_MM_DDThh_mm_ss_sssZ format. All training
+        input data will be written into that dataset. In the dataset three
+        tables will be created, ``training``, ``validation`` and ``test``.  -
+        AIP_DATA_FORMAT = "bigquery". -  AIP_TRAINING_DATA_URI
+        ="bigquery_destination.dataset_*.training" -  AIP_VALIDATION_DATA_URI =
+        "bigquery_destination.dataset_*.validation" -  AIP_TEST_DATA_URI =
+        "bigquery_destination.dataset_*.test"
+        args (List[Unions[str, int, float]]): Command line arguments to be
+        passed to the Python script.
+        environment_variables (Dict[str, str]): Environment variables to be
+        passed to the container. Should be a dictionary where keys are
+        environment variable names and values are environment variable values
+        for those names. At most 10 environment variables can be specified. The
+        Name of the environment variable must be unique. environment_variables =
+        { 'MY_KEY': 'MY_VALUE' }
+        replica_count (int): The number of worker replicas. If replica count = 1
+        then one chief replica will be provisioned. If replica_count > 1 the
+        remainder will be provisioned as a worker replica pool.
+        machine_type (str): The type of machine to use for training.
+        accelerator_type (str): Hardware accelerator type. One of
+        ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100,
+        NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4, TPU_V2, TPU_V3
+        accelerator_count (int): The number of accelerators to attach to a
+        worker replica.
+        boot_disk_type (str): Type of the boot disk, default is `pd-ssd`. Valid
+          values: `pd-ssd` (Persistent Disk Solid State Drive) or `pd-standard`
+          (Persistent Disk Hard Disk Drive).
+        boot_disk_size_gb (int): Size in GB of the boot disk, default is 100GB.
+        boot disk size must be within the range of [100, 64000].
+        reduction_server_replica_count (int): The number of reduction server
+        replicas, default is 0.
+        reduction_server_machine_type (str): Optional. The type of machine to
+        use for reduction server.
+        reduction_server_container_uri (str): Optional. The Uri of the reduction
+        server container image. See details:
+          https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
+        training_fraction_split (float): Optional. The fraction of the input
+        data that is to be used to train the Model. This is ignored if Dataset
+        is not provided.
+        validation_fraction_split (float): Optional. The fraction of the input
+        data that is to be used to validate the Model. This is ignored if
+        Dataset is not provided.
+        test_fraction_split (float): Optional. The fraction of the input data
+        that is to be used to evaluate the Model. This is ignored if Dataset is
+        not provided.
+        training_filter_split (str): Optional. A filter on DataItems of the
+        Dataset. DataItems that match this filter are used to train the Model. A
+        filter with same syntax as the one used in DatasetService.ListDataItems
+        may be used. If a single DataItem is matched by more than one of the
+        FilterSplit filters, then it is assigned to the first set that applies
+        to it in the training, validation, test order. This is ignored if
+        Dataset is not provided.
+        validation_filter_split (str): Optional. A filter on DataItems of the
+        Dataset. DataItems that match this filter are used to validate the
+        Model. A filter with same syntax as the one used in
+        DatasetService.ListDataItems may be used. If a single DataItem is
+        matched by more than one of the FilterSplit filters, then it is assigned
+        to the first set that applies to it in the training, validation, test
+        order. This is ignored if Dataset is not provided.
+        test_filter_split (str): Optional. A filter on DataItems of the Dataset.
+        DataItems that match this filter are used to test the Model. A filter
+        with same syntax as the one used in DatasetService.ListDataItems may be
+        used. If a single DataItem is matched by more than one of the
+        FilterSplit filters, then it is assigned to the first set that applies
+        to it in the training, validation, test order. This is ignored if
+        Dataset is not provided.
+        predefined_split_column_name (str): Optional. The key is a name of one
+        of the Dataset's data columns. The value of the key (either the label's
+        value or value in the column) must be one of {``training``,
+        ``validation``, ``test``}, and it defines to which set the given piece
+        of data is assigned. If for a piece of data the key is not present or
+        has an invalid value, that piece is ignored by the pipeline. Supported
+        only for tabular and time series Datasets.
+        timestamp_split_column_name (str): Optional. The key is a name of one of
+        the Dataset's data columns. The value of the key values of the key (the
+        values in the column) must be in RFC 3339 `date-time` format, where
+        `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a piece of
+        data the key is not present or has an invalid value, that piece is
+        ignored by the pipeline.  Supported only for tabular and time series
+        Datasets.
+        timeout (int): The maximum job running time in seconds. The default is 7
+        days.
+        restart_job_on_worker_restart (bool): Restarts the entire CustomJob if a
+        worker gets restarted. This feature can be used by distributed training
+        jobs that are not resilient to workers leaving and joining a job.
+        enable_web_access (bool): Whether you want Vertex AI to enable
+        interactive shell access to training containers.
+            https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell
+        enable_dashboard_access (bool): Whether you want Vertex AI to enable
+        access to the customized dashboard to training containers.
+        tensorboard (str): Optional. The name of a Vertex AI
+        [Tensorboard][google.cloud.aiplatform.v1beta1.Tensorboard] resource to
+        which this CustomJob will upload Tensorboard logs. Format:
+        ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
+        The training script should write Tensorboard to following Vertex AI
+        environment
+            variable:  AIP_TENSORBOARD_LOG_DIR  `service_account` is required
+            with provided `tensorboard`. For more information on configuring
+            your service account please visit:
+            https://cloud.google.com/vertex-ai/docs/experiments/tensorboard-training
+        sync (bool): Whether to execute this method synchronously. If False,
+        this method will be executed in concurrent Future and any downstream
+        object will be immediately returned and synced when the Future has
+        completed.
+        create_request_timeout (float): Optional. The timeout for the create
+        request in seconds.
+        disable_retries (bool): Indicates if the job should retry for internal
+        errors after the job starts running. If True, overrides
+        `restart_job_on_worker_restart` to False.
+        persistent_resource_id (str): Optional. The ID of the PersistentResource
+        in the same Project and Location. If this is specified, the job will be
+        run on existing machines held by the PersistentResource instead of
+        on-demand short-live machines. The network, CMEK, and node pool configs
+        on the job should be consistent with those on the PersistentResource,
+        otherwise, the job will be rejected.
+        tpu_topology (str): Optional. Specifies the tpu topology to be used for
+        TPU training job. This field is required for TPU v5 versions. For
+        details on the TPU topology, refer to
+          https://cloud.google.com/tpu/docs/v5e#tpu-v5e-config. The topology
+          must be a supported value for the TPU machine type.
 
-                os.environ["AIP_TRAINING_DATA_URI"]
-                os.environ["AIP_VALIDATION_DATA_URI"]
-                os.environ["AIP_TEST_DATA_URI"]
+    Returns:
+        model: The trained Vertex AI Model resource or None if training did not
+            produce a Vertex AI Model.
+    """
+    network = network or initializer.global_config.network
+    service_account = (
+        service_account or initializer.global_config.service_account
+    )
 
-                Additionally the dataset format is passed in as:
+    worker_pool_specs, managed_model = self._prepare_and_validate_run(
+        model_display_name=model_display_name,
+        model_labels=model_labels,
+        replica_count=replica_count,
+        machine_type=machine_type,
+        accelerator_count=accelerator_count,
+        accelerator_type=accelerator_type,
+        boot_disk_type=boot_disk_type,
+        boot_disk_size_gb=boot_disk_size_gb,
+        reduction_server_replica_count=reduction_server_replica_count,
+        reduction_server_machine_type=reduction_server_machine_type,
+        tpu_topology=tpu_topology,
+    )
 
-                os.environ["AIP_DATA_FORMAT"]
-            annotation_schema_uri (str):
-                Google Cloud Storage URI points to a YAML file describing
-                annotation schema. The schema is defined as an OpenAPI 3.0.2
-                [Schema Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#schema-object) The schema files
-                that can be used here are found in
-                gs://google-cloud-aiplatform/schema/dataset/annotation/,
-                note that the chosen schema must be consistent with
-                ``metadata``
-                of the Dataset specified by
-                ``dataset_id``.
+    return self._run(
+        dataset=dataset,
+        annotation_schema_uri=annotation_schema_uri,
+        worker_pool_specs=worker_pool_specs,
+        managed_model=managed_model,
+        model_id=model_id,
+        parent_model=parent_model,
+        is_default_version=is_default_version,
+        model_version_aliases=model_version_aliases,
+        model_version_description=model_version_description,
+        args=args,
+        environment_variables=environment_variables,
+        base_output_dir=base_output_dir,
+        service_account=service_account,
+        network=network,
+        training_fraction_split=training_fraction_split,
+        validation_fraction_split=validation_fraction_split,
+        test_fraction_split=test_fraction_split,
+        training_filter_split=training_filter_split,
+        validation_filter_split=validation_filter_split,
+        test_filter_split=test_filter_split,
+        predefined_split_column_name=predefined_split_column_name,
+        timestamp_split_column_name=timestamp_split_column_name,
+        bigquery_destination=bigquery_destination,
+        timeout=timeout,
+        restart_job_on_worker_restart=restart_job_on_worker_restart,
+        enable_web_access=enable_web_access,
+        enable_dashboard_access=enable_dashboard_access,
+        tensorboard=tensorboard,
+        reduction_server_container_uri=reduction_server_container_uri
+        if reduction_server_replica_count > 0
+        else None,
+        sync=sync,
+        create_request_timeout=create_request_timeout,
+        disable_retries=disable_retries,
+        persistent_resource_id=persistent_resource_id,
+    )
 
-                Only Annotations that both match this schema and belong to
-                DataItems not ignored by the split method are used in
-                respectively training, validation or test role, depending on
-                the role of the DataItem they are on.
-
-                When used in conjunction with
-                ``annotations_filter``,
-                the Annotations used for training are filtered by both
-                ``annotations_filter``
-                and
-                ``annotation_schema_uri``.
-            model_display_name (str):
-                If the script produces a managed Vertex AI Model. The display name of
-                the Model. The name can be up to 128 characters long and can be consist
-                of any UTF-8 characters.
-
-                If not provided upon creation, the job's display_name is used.
-            model_labels (Dict[str, str]):
-                Optional. The labels with user-defined metadata to
-                organize your Models.
-                Label keys and values can be no longer than 64
-                characters (Unicode codepoints), can only
-                contain lowercase letters, numeric characters,
-                underscores and dashes. International characters
-                are allowed.
-                See https://goo.gl/xmQnxf for more information
-                and examples of labels.
-            model_id (str):
-                Optional. The ID to use for the Model produced by this job,
-                which will become the final component of the model resource name.
-                This value may be up to 63 characters, and valid characters
-                are `[a-z0-9_-]`. The first character cannot be a number or hyphen.
-            parent_model (str):
-                Optional. The resource name or model ID of an existing model.
-                The new model uploaded by this job will be a version of `parent_model`.
-
-                Only set this field when training a new version of an existing model.
-            is_default_version (bool):
-                Optional. When set to True, the newly uploaded model version will
-                automatically have alias "default" included. Subsequent uses of
-                the model produced by this job without a version specified will
-                use this "default" version.
-
-                When set to False, the "default" alias will not be moved.
-                Actions targeting the model version produced by this job will need
-                to specifically reference this version by ID or alias.
-
-                New model uploads, i.e. version 1, will always be "default" aliased.
-            model_version_aliases (Sequence[str]):
-                Optional. User provided version aliases so that the model version
-                uploaded by this job can be referenced via alias instead of
-                auto-generated version ID. A default version alias will be created
-                for the first version of the model.
-
-                The format is [a-z][a-zA-Z0-9-]{0,126}[a-z0-9]
-            model_version_description (str):
-               Optional. The description of the model version being uploaded by this job.
-            base_output_dir (str):
-                GCS output directory of job. If not provided a
-                timestamped directory in the staging directory will be used.
-
-                Vertex AI sets the following environment variables when it runs your training code:
-
-                -  AIP_MODEL_DIR: a Cloud Storage URI of a directory intended for saving model artifacts, i.e. <base_output_dir>/model/
-                -  AIP_CHECKPOINT_DIR: a Cloud Storage URI of a directory intended for saving checkpoints, i.e. <base_output_dir>/checkpoints/
-                -  AIP_TENSORBOARD_LOG_DIR: a Cloud Storage URI of a directory intended for saving TensorBoard logs, i.e. <base_output_dir>/logs/
-
-            service_account (str):
-                Specifies the service account for workload run-as account.
-                Users submitting jobs must have act-as permission on this run-as account.
-                If not specified, uses the service account set in aiplatform.init.
-            network (str):
-                The full name of the Compute Engine network to which the job
-                should be peered. For example, projects/12345/global/networks/myVPC.
-                Private services access must already be configured for the network.
-                If left unspecified, the network set in aiplatform.init will be used.
-                Otherwise, the job is not peered with any network.
-            bigquery_destination (str):
-                Provide this field if `dataset` is a BigQuery dataset.
-                The BigQuery project location where the training data is to
-                be written to. In the given project a new dataset is created
-                with name
-                ``dataset_<dataset-id>_<annotation-type>_<timestamp-of-training-call>``
-                where timestamp is in YYYY_MM_DDThh_mm_ss_sssZ format. All
-                training input data will be written into that dataset. In
-                the dataset three tables will be created, ``training``,
-                ``validation`` and ``test``.
-
-                -  AIP_DATA_FORMAT = "bigquery".
-                -  AIP_TRAINING_DATA_URI ="bigquery_destination.dataset_*.training"
-                -  AIP_VALIDATION_DATA_URI = "bigquery_destination.dataset_*.validation"
-                -  AIP_TEST_DATA_URI = "bigquery_destination.dataset_*.test"
-            args (List[Unions[str, int, float]]):
-                Command line arguments to be passed to the Python script.
-            environment_variables (Dict[str, str]):
-                Environment variables to be passed to the container.
-                Should be a dictionary where keys are environment variable names
-                and values are environment variable values for those names.
-                At most 10 environment variables can be specified.
-                The Name of the environment variable must be unique.
-
-                environment_variables = {
-                    'MY_KEY': 'MY_VALUE'
-                }
-            replica_count (int):
-                The number of worker replicas. If replica count = 1 then one chief
-                replica will be provisioned. If replica_count > 1 the remainder will be
-                provisioned as a worker replica pool.
-            machine_type (str):
-                The type of machine to use for training.
-            accelerator_type (str):
-                Hardware accelerator type. One of ACCELERATOR_TYPE_UNSPECIFIED,
-                NVIDIA_TESLA_K80, NVIDIA_TESLA_P100, NVIDIA_TESLA_V100, NVIDIA_TESLA_P4,
-                NVIDIA_TESLA_T4
-            accelerator_count (int):
-                The number of accelerators to attach to a worker replica.
-            boot_disk_type (str):
-                Type of the boot disk, default is `pd-ssd`.
-                Valid values: `pd-ssd` (Persistent Disk Solid State Drive) or
-                `pd-standard` (Persistent Disk Hard Disk Drive).
-            boot_disk_size_gb (int):
-                Size in GB of the boot disk, default is 100GB.
-                boot disk size must be within the range of [100, 64000].
-            reduction_server_replica_count (int):
-                The number of reduction server replicas, default is 0.
-            reduction_server_machine_type (str):
-                Optional. The type of machine to use for reduction server.
-            reduction_server_container_uri (str):
-                Optional. The Uri of the reduction server container image.
-                See details: https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
-            training_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to train
-                the Model. This is ignored if Dataset is not provided.
-            validation_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to validate
-                the Model. This is ignored if Dataset is not provided.
-            test_fraction_split (float):
-                Optional. The fraction of the input data that is to be used to evaluate
-                the Model. This is ignored if Dataset is not provided.
-            training_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to train the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            validation_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to validate the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            test_filter_split (str):
-                Optional. A filter on DataItems of the Dataset. DataItems that match
-                this filter are used to test the Model. A filter with same syntax
-                as the one used in DatasetService.ListDataItems may be used. If a
-                single DataItem is matched by more than one of the FilterSplit filters,
-                then it is assigned to the first set that applies to it in the training,
-                validation, test order. This is ignored if Dataset is not provided.
-            predefined_split_column_name (str):
-                Optional. The key is a name of one of the Dataset's data
-                columns. The value of the key (either the label's value or
-                value in the column) must be one of {``training``,
-                ``validation``, ``test``}, and it defines to which set the
-                given piece of data is assigned. If for a piece of data the
-                key is not present or has an invalid value, that piece is
-                ignored by the pipeline.
-
-                Supported only for tabular and time series Datasets.
-            timestamp_split_column_name (str):
-                Optional. The key is a name of one of the Dataset's data
-                columns. The value of the key values of the key (the values in
-                the column) must be in RFC 3339 `date-time` format, where
-                `time-offset` = `"Z"` (e.g. 1985-04-12T23:20:50.52Z). If for a
-                piece of data the key is not present or has an invalid value,
-                that piece is ignored by the pipeline.
-
-                Supported only for tabular and time series Datasets.
-            timeout (int):
-                The maximum job running time in seconds. The default is 7 days.
-            restart_job_on_worker_restart (bool):
-                Restarts the entire CustomJob if a worker
-                gets restarted. This feature can be used by
-                distributed training jobs that are not resilient
-                to workers leaving and joining a job.
-            enable_web_access (bool):
-                Whether you want Vertex AI to enable interactive shell access
-                to training containers.
-                https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell
-            enable_dashboard_access (bool):
-                Whether you want Vertex AI to enable access to the customized dashboard
-                to training containers.
-            tensorboard (str):
-                Optional. The name of a Vertex AI
-                [Tensorboard][google.cloud.aiplatform.v1beta1.Tensorboard]
-                resource to which this CustomJob will upload Tensorboard
-                logs. Format:
-                ``projects/{project}/locations/{location}/tensorboards/{tensorboard}``
-
-                The training script should write Tensorboard to following Vertex AI environment
-                variable:
-
-                AIP_TENSORBOARD_LOG_DIR
-
-                `service_account` is required with provided `tensorboard`.
-                For more information on configuring your service account please visit:
-                https://cloud.google.com/vertex-ai/docs/experiments/tensorboard-training
-            sync (bool):
-                Whether to execute this method synchronously. If False, this method
-                will be executed in concurrent Future and any downstream object will
-                be immediately returned and synced when the Future has completed.
-            create_request_timeout (float):
-                Optional. The timeout for the create request in seconds.
-            disable_retries (bool):
-                Indicates if the job should retry for internal errors after the
-                job starts running. If True, overrides
-                `restart_job_on_worker_restart` to False.
-            persistent_resource_id (str):
-                Optional. The ID of the PersistentResource in the same Project
-                and Location. If this is specified, the job will be run on
-                existing machines held by the PersistentResource instead of
-                on-demand short-live machines. The network, CMEK, and node pool
-                configs on the job should be consistent with those on the
-                PersistentResource, otherwise, the job will be rejected.
-
-        Returns:
-            model: The trained Vertex AI Model resource or None if training did not
-                produce a Vertex AI Model.
-        """
-        network = network or initializer.global_config.network
-        service_account = service_account or initializer.global_config.service_account
-
-        worker_pool_specs, managed_model = self._prepare_and_validate_run(
-            model_display_name=model_display_name,
-            model_labels=model_labels,
-            replica_count=replica_count,
-            machine_type=machine_type,
-            accelerator_count=accelerator_count,
-            accelerator_type=accelerator_type,
-            boot_disk_type=boot_disk_type,
-            boot_disk_size_gb=boot_disk_size_gb,
-            reduction_server_replica_count=reduction_server_replica_count,
-            reduction_server_machine_type=reduction_server_machine_type,
-        )
-
-        return self._run(
-            dataset=dataset,
-            annotation_schema_uri=annotation_schema_uri,
-            worker_pool_specs=worker_pool_specs,
-            managed_model=managed_model,
-            model_id=model_id,
-            parent_model=parent_model,
-            is_default_version=is_default_version,
-            model_version_aliases=model_version_aliases,
-            model_version_description=model_version_description,
-            args=args,
-            environment_variables=environment_variables,
-            base_output_dir=base_output_dir,
-            service_account=service_account,
-            network=network,
-            training_fraction_split=training_fraction_split,
-            validation_fraction_split=validation_fraction_split,
-            test_fraction_split=test_fraction_split,
-            training_filter_split=training_filter_split,
-            validation_filter_split=validation_filter_split,
-            test_filter_split=test_filter_split,
-            predefined_split_column_name=predefined_split_column_name,
-            timestamp_split_column_name=timestamp_split_column_name,
-            bigquery_destination=bigquery_destination,
-            timeout=timeout,
-            restart_job_on_worker_restart=restart_job_on_worker_restart,
-            enable_web_access=enable_web_access,
-            enable_dashboard_access=enable_dashboard_access,
-            tensorboard=tensorboard,
-            reduction_server_container_uri=reduction_server_container_uri
-            if reduction_server_replica_count > 0
-            else None,
-            sync=sync,
-            create_request_timeout=create_request_timeout,
-            disable_retries=disable_retries,
-            persistent_resource_id=persistent_resource_id,
-        )
-
-    @base.optional_sync(construct_object_on_arg="managed_model")
-    def _run(
+  @base.optional_sync(construct_object_on_arg="managed_model")
+  def _run(
         self,
         dataset: Optional[
             Union[
@@ -7706,7 +7491,7 @@ class CustomPythonPackageTrainingJob(_CustomTrainingJob):
         disable_retries: bool = False,
         persistent_resource_id: Optional[str] = None,
     ) -> Optional[models.Model]:
-        """Packages local script and launches training_job.
+    """Packages local script and launches training_job.
 
         Args:
             dataset (
@@ -7887,35 +7672,35 @@ class CustomPythonPackageTrainingJob(_CustomTrainingJob):
             model: The trained Vertex AI Model resource or None if training did not
                 produce a Vertex AI Model.
         """
-        for spec_order, spec in enumerate(worker_pool_specs):
+    for spec_order, spec in enumerate(worker_pool_specs):
 
-            if not spec:
-                continue
+      if not spec:
+        continue
 
-            if (
+      if (
                 spec_order == worker_spec_utils._SPEC_ORDERS["server_spec"]
                 and reduction_server_container_uri
             ):
-                spec["container_spec"] = {
+        spec["container_spec"] = {
                     "image_uri": reduction_server_container_uri,
                 }
-            else:
-                spec["python_package_spec"] = {
+      else:
+        spec["python_package_spec"] = {
                     "executor_image_uri": self._container_uri,
                     "python_module": self._python_module,
                     "package_uris": self._package_gcs_uri,
                 }
 
-                if args:
-                    spec["python_package_spec"]["args"] = args
+        if args:
+          spec["python_package_spec"]["args"] = args
 
-                if environment_variables:
-                    spec["python_package_spec"]["env"] = [
+        if environment_variables:
+          spec["python_package_spec"]["env"] = [
                         {"name": key, "value": value}
                         for key, value in environment_variables.items()
                     ]
 
-        (
+    (
             training_task_inputs,
             base_output_dir,
         ) = self._prepare_training_task_inputs_and_output_dir(
@@ -7932,7 +7717,7 @@ class CustomPythonPackageTrainingJob(_CustomTrainingJob):
             persistent_resource_id=persistent_resource_id,
         )
 
-        model = self._run_job(
+    model = self._run_job(
             training_task_definition=schema.training_job.definition.custom_task,
             training_task_inputs=training_task_inputs,
             dataset=dataset,
@@ -7956,7 +7741,7 @@ class CustomPythonPackageTrainingJob(_CustomTrainingJob):
             create_request_timeout=create_request_timeout,
         )
 
-        return model
+    return model
 
 
 class AutoMLVideoTrainingJob(_TrainingJob):

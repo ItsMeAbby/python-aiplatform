@@ -1707,19 +1707,19 @@ class DataLabelingJob(_Job):
 
 
 class CustomJob(_RunnableJob, base.PreviewMixin):
-    """Vertex AI Custom Job."""
+  """Vertex AI Custom Job."""
 
-    _resource_noun = "customJobs"
-    _getter_method = "get_custom_job"
-    _list_method = "list_custom_jobs"
-    _cancel_method = "cancel_custom_job"
-    _delete_method = "delete_custom_job"
-    _parse_resource_name_method = "parse_custom_job_path"
-    _format_resource_name_method = "custom_job_path"
-    _job_type = "training"
-    _preview_class = "google.cloud.aiplatform.aiplatform.preview.jobs.CustomJob"
+  _resource_noun = "customJobs"
+  _getter_method = "get_custom_job"
+  _list_method = "list_custom_jobs"
+  _cancel_method = "cancel_custom_job"
+  _delete_method = "delete_custom_job"
+  _parse_resource_name_method = "parse_custom_job_path"
+  _format_resource_name_method = "custom_job_path"
+  _job_type = "training"
+  _preview_class = "google.cloud.aiplatform.aiplatform.preview.jobs.CustomJob"
 
-    def __init__(
+  def __init__(
         self,
         # TODO(b/223262536): Make display_name parameter fully optional in next major release
         display_name: str,
@@ -1733,7 +1733,7 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
         staging_bucket: Optional[str] = None,
         persistent_resource_id: Optional[str] = None,
     ):
-        """Constructs a Custom Job with Worker Pool Specs.
+    """Constructs a Custom Job with Worker Pool Specs.
 
         ```
         Example usage:
@@ -1816,28 +1816,28 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
                 and a staging bucket was not passed in.
         """
 
-        super().__init__(project=project, location=location, credentials=credentials)
+    super().__init__(project=project, location=location, credentials=credentials)
 
-        staging_bucket = staging_bucket or initializer.global_config.staging_bucket
+    staging_bucket = staging_bucket or initializer.global_config.staging_bucket
 
-        if not staging_bucket:
-            raise RuntimeError(
+    if not staging_bucket:
+      raise RuntimeError(
                 "staging_bucket should be passed to CustomJob constructor or "
                 "should be set using aiplatform.init(staging_bucket='gs://my-bucket')"
             )
 
-        if labels:
-            utils.validate_labels(labels)
+    if labels:
+      utils.validate_labels(labels)
 
-        # default directory if not given
-        base_output_dir = base_output_dir or utils._timestamped_gcs_dir(
+    # default directory if not given
+    base_output_dir = base_output_dir or utils._timestamped_gcs_dir(
             staging_bucket, "aiplatform-custom-job"
         )
 
-        if not display_name:
-            display_name = self.__class__._generate_display_name()
+    if not display_name:
+      display_name = self.__class__._generate_display_name()
 
-        self._gca_resource = gca_custom_job_compat.CustomJob(
+    self._gca_resource = gca_custom_job_compat.CustomJob(
             display_name=display_name,
             job_spec=gca_custom_job_compat.CustomJobSpec(
                 worker_pool_specs=worker_pool_specs,
@@ -1852,13 +1852,13 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
             ),
         )
 
-        self._experiment = None
-        self._experiment_run = None
-        self._enable_autolog = False
+    self._experiment = None
+    self._experiment_run = None
+    self._enable_autolog = False
 
-    @property
-    def network(self) -> Optional[str]:
-        """The full name of the Google Compute Engine
+  @property
+  def network(self) -> Optional[str]:
+    """The full name of the Google Compute Engine
         [network](https://cloud.google.com/vpc/docs/vpc#networks) to which this
         CustomJob should be peered.
 
@@ -1868,24 +1868,24 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
         Private services access must already be configured for the network. If left
         unspecified, the CustomJob is not peered with any network.
         """
-        self._assert_gca_resource_is_available()
-        return self._gca_resource.job_spec.network
+    self._assert_gca_resource_is_available()
+    return self._gca_resource.job_spec.network
 
-    def _get_web_access_uris(self) -> Dict[str, str]:
-        """Helper method to get the web access uris of the custom job
+  def _get_web_access_uris(self) -> Dict[str, str]:
+    """Helper method to get the web access uris of the custom job
 
         Returns:
             (Dict[str, str]):
                 Web access uris of the custom job.
         """
-        return dict(self._gca_resource.web_access_uris)
+    return dict(self._gca_resource.web_access_uris)
 
-    def _log_web_access_uris(self):
-        """Helper method to log the web access uris of the custom job"""
+  def _log_web_access_uris(self):
+    """Helper method to log the web access uris of the custom job"""
 
-        for worker, uri in self._get_web_access_uris().items():
-            if uri not in self._logged_web_access_uris:
-                _LOGGER.info(
+    for worker, uri in self._get_web_access_uris().items():
+      if uri not in self._logged_web_access_uris:
+        _LOGGER.info(
                     "%s %s access the interactive shell terminals for the custom job:\n%s:\n%s"
                     % (
                         self.__class__.__name__,
@@ -1894,258 +1894,246 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
                         uri,
                     ),
                 )
-                self._logged_web_access_uris.add(uri)
+        self._logged_web_access_uris.add(uri)
 
-    @classmethod
-    def from_local_script(
-        cls,
-        # TODO(b/223262536): Make display_name parameter fully optional in next major release
-        display_name: str,
-        script_path: str,
-        container_uri: str,
-        enable_autolog: bool = False,
-        args: Optional[Sequence[str]] = None,
-        requirements: Optional[Sequence[str]] = None,
-        environment_variables: Optional[Dict[str, str]] = None,
-        replica_count: int = 1,
-        machine_type: str = "n1-standard-4",
-        accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
-        accelerator_count: int = 0,
-        boot_disk_type: str = "pd-ssd",
-        boot_disk_size_gb: int = 100,
-        reduction_server_replica_count: int = 0,
-        reduction_server_machine_type: Optional[str] = None,
-        reduction_server_container_uri: Optional[str] = None,
-        base_output_dir: Optional[str] = None,
-        project: Optional[str] = None,
-        location: Optional[str] = None,
-        credentials: Optional[auth_credentials.Credentials] = None,
-        labels: Optional[Dict[str, str]] = None,
-        encryption_spec_key_name: Optional[str] = None,
-        staging_bucket: Optional[str] = None,
-        persistent_resource_id: Optional[str] = None,
-    ) -> "CustomJob":
-        """Configures a custom job from a local script.
+  @classmethod
+  def from_local_script(
+      cls,
+      # TODO(b/223262536): Make display_name parameter fully optional in next major release
+      display_name: str,
+      script_path: str,
+      container_uri: str,
+      enable_autolog: bool = False,
+      args: Optional[Sequence[str]] = None,
+      requirements: Optional[Sequence[str]] = None,
+      environment_variables: Optional[Dict[str, str]] = None,
+      replica_count: int = 1,
+      machine_type: str = "n1-standard-4",
+      accelerator_type: str = "ACCELERATOR_TYPE_UNSPECIFIED",
+      accelerator_count: int = 0,
+      boot_disk_type: str = "pd-ssd",
+      boot_disk_size_gb: int = 100,
+      reduction_server_replica_count: int = 0,
+      reduction_server_machine_type: Optional[str] = None,
+      reduction_server_container_uri: Optional[str] = None,
+      base_output_dir: Optional[str] = None,
+      project: Optional[str] = None,
+      location: Optional[str] = None,
+      credentials: Optional[auth_credentials.Credentials] = None,
+      labels: Optional[Dict[str, str]] = None,
+      encryption_spec_key_name: Optional[str] = None,
+      staging_bucket: Optional[str] = None,
+      persistent_resource_id: Optional[str] = None,
+      tpu_topology: Optional[str] = None,
+  ) -> "CustomJob":
+    """Configures a custom job from a local script.
 
-        Example usage:
-        ```
-        job = aiplatform.CustomJob.from_local_script(
-            display_name="my-custom-job",
-            script_path="training_script.py",
-            container_uri="gcr.io/cloud-aiplatform/training/tf-cpu.2-2:latest",
-            requirements=["gcsfs==0.7.1"],
-            replica_count=1,
-            args=['--dataset', 'gs://my-bucket/my-dataset',
-            '--model_output_uri', 'gs://my-bucket/model']
-            labels={'my_key': 'my_value'},
-        )
+    Example usage:
+    ```
+    job = aiplatform.CustomJob.from_local_script(
+        display_name="my-custom-job",
+        script_path="training_script.py",
+        container_uri="gcr.io/cloud-aiplatform/training/tf-cpu.2-2:latest",
+        requirements=["gcsfs==0.7.1"],
+        replica_count=1,
+        args=['--dataset', 'gs://my-bucket/my-dataset',
+        '--model_output_uri', 'gs://my-bucket/model']
+        labels={'my_key': 'my_value'},
+    )
 
-        job.run()
-        ```
+    job.run()
+    ```
 
-        Args:
-            display_name (str):
-                Required. The user-defined name of this CustomJob.
-            script_path (str):
-                Required. Local path to training script.
-            container_uri (str):
-                Required. Uri of the training container image to use for custom job.
-                Support images in Artifact Registry, Container Registry, or Docker Hub.
-                Vertex AI provides a wide range of executor images with pre-installed
-                packages to meet users' various use cases. See the list of `pre-built containers
-                for training <https://cloud.google.com/vertex-ai/docs/training/pre-built-containers>`.
-                If not using image from this list, please make sure python3 and pip3 are installed in your container.
-            enable_autolog (bool):
-                Optional. If True, the Vertex Experiments autologging feature will be
-                enabled in the CustomJob. Note that this will wrap your training script
-                with some autologging-related code.
-            args (Optional[Sequence[str]]):
-                Optional. Command line arguments to be passed to the Python task.
-            requirements (Sequence[str]):
-                Optional. List of python packages dependencies of script.
-            environment_variables (Dict[str, str]):
-                Optional. Environment variables to be passed to the container.
-                Should be a dictionary where keys are environment variable names
-                and values are environment variable values for those names.
-                At most 10 environment variables can be specified.
-                The Name of the environment variable must be unique.
+    Args:
+        display_name (str): Required. The user-defined name of this CustomJob.
+        script_path (str): Required. Local path to training script.
+        container_uri (str): Required. Uri of the training container image to
+          use for custom job. Support images in Artifact Registry, Container
+          Registry, or Docker Hub. Vertex AI provides a wide range of executor
+          images with pre-installed packages to meet users' various use cases.
+          See the list of `pre-built containers for training
+          <https://cloud.google.com/vertex-ai/docs/training/pre-built-containers>`.
+          If not using image from this list, please make sure python3 and pip3
+          are installed in your container.
+        enable_autolog (bool): Optional. If True, the Vertex Experiments
+          autologging feature will be enabled in the CustomJob. Note that this
+          will wrap your training script with some autologging-related code.
+        args (Optional[Sequence[str]]): Optional. Command line arguments to be
+          passed to the Python task.
+        requirements (Sequence[str]): Optional. List of python packages
+          dependencies of script.
+        environment_variables (Dict[str, str]): Optional. Environment variables
+          to be passed to the container. Should be a dictionary where keys are
+          environment variable names and values are environment variable values
+          for those names. At most 10 environment variables can be specified.
+          The Name of the environment variable must be unique.
+          environment_variables = { 'MY_KEY': 'MY_VALUE' }
+        replica_count (int): Optional. The number of worker replicas. If replica
+          count = 1 then one chief replica will be provisioned. If replica_count
+          > 1 the remainder will be provisioned as a worker replica pool.
+        machine_type (str): Optional. The type of machine to use for training.
+        accelerator_type (str): Optional. Hardware accelerator type. One of
+          ACCELERATOR_TYPE_UNSPECIFIED, NVIDIA_TESLA_K80, NVIDIA_TESLA_P100,
+          NVIDIA_TESLA_V100, NVIDIA_TESLA_P4, NVIDIA_TESLA_T4
+        accelerator_count (int): Optional. The number of accelerators to attach
+          to a worker replica.
+        boot_disk_type (str): Optional. Type of the boot disk, default is
+          `pd-ssd`. Valid values: `pd-ssd` (Persistent Disk Solid State Drive)
+          or `pd-standard` (Persistent Disk Hard Disk Drive).
+        boot_disk_size_gb (int): Optional. Size in GB of the boot disk, default
+          is 100GB. boot disk size must be within the range of [100, 64000].
+        reduction_server_replica_count (int): The number of reduction server
+          replicas, default is 0.
+        reduction_server_machine_type (str): Optional. The type of machine to
+          use for reduction server.
+        reduction_server_container_uri (str): Optional. The Uri of the reduction
+          server container image. See details:
+          https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
+        base_output_dir (str): Optional. GCS output directory of job. If not
+          provided a timestamped directory in the staging directory will be
+          used.
+        project (str): Optional. Project to run the custom job in. Overrides
+          project set in aiplatform.init.
+        location (str): Optional. Location to run the custom job in. Overrides
+          location set in aiplatform.init.
+        credentials (auth_credentials.Credentials): Optional. Custom credentials
+          to use to run call custom job service. Overrides credentials set in
+          aiplatform.init.
+        labels (Dict[str, str]): Optional. The labels with user-defined metadata
+          to organize CustomJobs. Label keys and values can be no longer than 64
+          characters (Unicode codepoints), can only contain lowercase letters,
+          numeric characters, underscores and dashes. International characters
+          are allowed. See https://goo.gl/xmQnxf for more information and
+          examples of labels.
+        encryption_spec_key_name (str): Optional. Customer-managed encryption
+          key name for a CustomJob. If this is set, then all resources created
+          by the CustomJob will be encrypted with the provided encryption key.
+        staging_bucket (str): Optional. Bucket for produced custom job
+          artifacts. Overrides staging_bucket set in aiplatform.init.
+        tpu_topology (str): Optional. Specifies the tpu topology to be used for
+          TPU training job. This field is required for TPU v5 versions. For
+          details on the TPU topology, refer to
+          https://cloud.google.com/tpu/docs/v5e#tpu-v5e-config. The topology
+            must be a supported value for the TPU machine type.
+        persistent_resource_id (str): Optional. The ID of the PersistentResource
+          in the same Project and Location. If this is specified, the job will
+          be run on existing machines held by the PersistentResource instead of
+          on-demand short-live machines. The network, CMEK, and node pool
+          configs on the job should be consistent with those on the
+          PersistentResource, otherwise, the job will be rejected.
 
-                environment_variables = {
-                    'MY_KEY': 'MY_VALUE'
-                }
-            replica_count (int):
-                Optional. The number of worker replicas. If replica count = 1 then one chief
-                replica will be provisioned. If replica_count > 1 the remainder will be
-                provisioned as a worker replica pool.
-            machine_type (str):
-                Optional. The type of machine to use for training.
-            accelerator_type (str):
-                Optional. Hardware accelerator type. One of ACCELERATOR_TYPE_UNSPECIFIED,
-                NVIDIA_TESLA_K80, NVIDIA_TESLA_P100, NVIDIA_TESLA_V100, NVIDIA_TESLA_P4,
-                NVIDIA_TESLA_T4
-            accelerator_count (int):
-                Optional. The number of accelerators to attach to a worker replica.
-            boot_disk_type (str):
-                Optional. Type of the boot disk, default is `pd-ssd`.
-                Valid values: `pd-ssd` (Persistent Disk Solid State Drive) or
-                `pd-standard` (Persistent Disk Hard Disk Drive).
-            boot_disk_size_gb (int):
-                Optional. Size in GB of the boot disk, default is 100GB.
-                boot disk size must be within the range of [100, 64000].
-            reduction_server_replica_count (int):
-                The number of reduction server replicas, default is 0.
-            reduction_server_machine_type (str):
-                Optional. The type of machine to use for reduction server.
-            reduction_server_container_uri (str):
-                Optional. The Uri of the reduction server container image.
-                See details: https://cloud.google.com/vertex-ai/docs/training/distributed-training#reduce_training_time_with_reduction_server
-            base_output_dir (str):
-                Optional. GCS output directory of job. If not provided a
-                timestamped directory in the staging directory will be used.
-            project (str):
-                Optional. Project to run the custom job in. Overrides project set in aiplatform.init.
-            location (str):
-                Optional. Location to run the custom job in. Overrides location set in aiplatform.init.
-            credentials (auth_credentials.Credentials):
-                Optional. Custom credentials to use to run call custom job service. Overrides
-                credentials set in aiplatform.init.
-            labels (Dict[str, str]):
-                Optional. The labels with user-defined metadata to
-                organize CustomJobs.
-                Label keys and values can be no longer than 64
-                characters (Unicode codepoints), can only
-                contain lowercase letters, numeric characters,
-                underscores and dashes. International characters
-                are allowed.
-                See https://goo.gl/xmQnxf for more information
-                and examples of labels.
-            encryption_spec_key_name (str):
-                Optional. Customer-managed encryption key name for a
-                CustomJob. If this is set, then all resources
-                created by the CustomJob will be encrypted with
-                the provided encryption key.
-            staging_bucket (str):
-                Optional. Bucket for produced custom job artifacts. Overrides
-                staging_bucket set in aiplatform.init.
-            persistent_resource_id (str):
-                Optional. The ID of the PersistentResource in the same Project
-                and Location. If this is specified, the job will be run on
-                existing machines held by the PersistentResource instead of
-                on-demand short-live machines. The network, CMEK, and node pool
-                configs on the job should be consistent with those on the
-                PersistentResource, otherwise, the job will be rejected.
+    Raises:
+        RuntimeError: If staging bucket was not set using aiplatform.init
+            and a staging bucket was not passed in.
+    """
 
-        Raises:
-            RuntimeError: If staging bucket was not set using aiplatform.init
-                and a staging bucket was not passed in.
-        """
+    project = project or initializer.global_config.project
+    location = location or initializer.global_config.location
+    staging_bucket = staging_bucket or initializer.global_config.staging_bucket
 
-        project = project or initializer.global_config.project
-        location = location or initializer.global_config.location
-        staging_bucket = staging_bucket or initializer.global_config.staging_bucket
+    if not staging_bucket:
+      raise RuntimeError(
+          "staging_bucket should be passed to CustomJob.from_local_script or "
+          "should be set using aiplatform.init(staging_bucket='gs://my-bucket')"
+      )
 
-        if not staging_bucket:
-            raise RuntimeError(
-                "staging_bucket should be passed to CustomJob.from_local_script or "
-                "should be set using aiplatform.init(staging_bucket='gs://my-bucket')"
-            )
+    if labels:
+      utils.validate_labels(labels)
 
-        if labels:
-            utils.validate_labels(labels)
+    worker_pool_specs = (
+        worker_spec_utils._DistributedTrainingSpec.chief_worker_pool(
+            replica_count=replica_count,
+            machine_type=machine_type,
+            accelerator_count=accelerator_count,
+            accelerator_type=accelerator_type,
+            boot_disk_type=boot_disk_type,
+            boot_disk_size_gb=boot_disk_size_gb,
+            reduction_server_replica_count=reduction_server_replica_count,
+            reduction_server_machine_type=reduction_server_machine_type,
+            tpu_topology=tpu_topology,
+        ).pool_specs
+    )
 
-        worker_pool_specs = (
-            worker_spec_utils._DistributedTrainingSpec.chief_worker_pool(
-                replica_count=replica_count,
-                machine_type=machine_type,
-                accelerator_count=accelerator_count,
-                accelerator_type=accelerator_type,
-                boot_disk_type=boot_disk_type,
-                boot_disk_size_gb=boot_disk_size_gb,
-                reduction_server_replica_count=reduction_server_replica_count,
-                reduction_server_machine_type=reduction_server_machine_type,
-            ).pool_specs
-        )
+    # if users enable autolog, automatically install SDK in their container image
+    # otherwise users need to manually install SDK
+    if enable_autolog:
+      experiment_requirements = [constants.AIPLATFORM_AUTOLOG_DEPENDENCY_PATH]
+    else:
+      experiment_requirements = []
 
-        # if users enable autolog, automatically install SDK in their container image
-        # otherwise users need to manually install SDK
-        if enable_autolog:
-            experiment_requirements = [constants.AIPLATFORM_AUTOLOG_DEPENDENCY_PATH]
-        else:
-            experiment_requirements = []
+    if requirements:
+      requirements.extend(experiment_requirements)
+    else:
+      requirements = experiment_requirements
 
-        if requirements:
-            requirements.extend(experiment_requirements)
-        else:
-            requirements = experiment_requirements
+    if enable_autolog:
+      with tempfile.TemporaryDirectory() as temp_dir:
+        autolog_script_path = f"{temp_dir}/trainer_with_autolog.py"
+        with open(autolog_script_path, "w") as f:
+          autolog_script = (
+              "# Start a Vertex Experiments autolog session...\n"
+              "from google.cloud "
+              "import aiplatform\n"
+              "aiplatform.autolog()\n\n"
+              "# Training script...\n"
+          )
+          f.write(autolog_script)
 
-        if enable_autolog:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                autolog_script_path = f"{temp_dir}/trainer_with_autolog.py"
-                with open(autolog_script_path, "w") as f:
-                    autolog_script = (
-                        "# Start a Vertex Experiments autolog session...\n"
-                        "from google.cloud "
-                        "import aiplatform\n"
-                        "aiplatform.autolog()\n\n"
-                        "# Training script...\n"
-                    )
-                    f.write(autolog_script)
+          trainer_script = open(script_path, "r").read()
+          f.write(trainer_script)
 
-                    trainer_script = open(script_path, "r").read()
-                    f.write(trainer_script)
-
-                python_packager = source_utils._TrainingScriptPythonPackager(
+        python_packager = source_utils._TrainingScriptPythonPackager(
                     script_path=autolog_script_path, requirements=requirements
                 )
 
-                package_gcs_uri = python_packager.package_and_copy_to_gcs(
+        package_gcs_uri = python_packager.package_and_copy_to_gcs(
                     gcs_staging_dir=staging_bucket,
                     project=project,
                     credentials=credentials,
                 )
-        else:
-            python_packager = source_utils._TrainingScriptPythonPackager(
+    else:
+      python_packager = source_utils._TrainingScriptPythonPackager(
                 script_path=script_path, requirements=requirements
             )
 
-            package_gcs_uri = python_packager.package_and_copy_to_gcs(
+      package_gcs_uri = python_packager.package_and_copy_to_gcs(
                 gcs_staging_dir=staging_bucket,
                 project=project,
                 credentials=credentials,
             )
 
-        for spec_order, spec in enumerate(worker_pool_specs):
+    for spec_order, spec in enumerate(worker_pool_specs):
 
-            if not spec:
-                continue
+      if not spec:
+        continue
 
-            if (
+      if (
                 spec_order == worker_spec_utils._SPEC_ORDERS["server_spec"]
                 and reduction_server_replica_count > 0
             ):
-                spec["container_spec"] = {
+        spec["container_spec"] = {
                     "image_uri": reduction_server_container_uri,
                 }
-            ## check if the container is pre-built
-            elif ("docker.pkg.dev/vertex-ai/" in container_uri) or (
+      ## check if the container is pre-built
+      elif ("docker.pkg.dev/vertex-ai/" in container_uri) or (
                 "gcr.io/cloud-aiplatform/" in container_uri
             ):
-                spec["python_package_spec"] = {
+        spec["python_package_spec"] = {
                     "executor_image_uri": container_uri,
                     "python_module": python_packager.module_name,
                     "package_uris": [package_gcs_uri],
                 }
 
-                if args:
-                    spec["python_package_spec"]["args"] = args
+        if args:
+          spec["python_package_spec"]["args"] = args
 
-                if environment_variables:
-                    spec["python_package_spec"]["env"] = [
+        if environment_variables:
+          spec["python_package_spec"]["env"] = [
                         {"name": key, "value": value}
                         for key, value in environment_variables.items()
                     ]
-            else:
-                command = [
+      else:
+        command = [
                     "sh",
                     "-c",
                     "pip install --upgrade pip && "
@@ -2155,21 +2143,21 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
                     + f"python3 -m {python_packager.module_name}",
                 ]
 
-                if args:
-                    command[-1] += " " + " ".join(args)
+        if args:
+          command[-1] += " " + " ".join(args)
 
-                spec["container_spec"] = {
+        spec["container_spec"] = {
                     "image_uri": container_uri,
                     "command": command,
                 }
 
-                if environment_variables:
-                    spec["container_spec"]["env"] = [
+        if environment_variables:
+          spec["container_spec"]["env"] = [
                         {"name": key, "value": value}
                         for key, value in environment_variables.items()
                     ]
 
-        job = cls(
+    job = cls(
             display_name=display_name,
             worker_pool_specs=worker_pool_specs,
             base_output_dir=base_output_dir,
@@ -2182,12 +2170,12 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
             persistent_resource_id=persistent_resource_id,
         )
 
-        if enable_autolog:
-            job._enable_autolog = True
+    if enable_autolog:
+      job._enable_autolog = True
 
-        return job
+    return job
 
-    def run(
+  def run(
         self,
         service_account: Optional[str] = None,
         network: Optional[str] = None,
@@ -2202,7 +2190,7 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
         disable_retries: bool = False,
         persistent_resource_id: Optional[str] = None,
     ) -> None:
-        """Run this configured CustomJob.
+    """Run this configured CustomJob.
 
         Args:
             service_account (str):
@@ -2270,10 +2258,10 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
                 configs on the job should be consistent with those on the
                 PersistentResource, otherwise, the job will be rejected.
         """
-        network = network or initializer.global_config.network
-        service_account = service_account or initializer.global_config.service_account
+    network = network or initializer.global_config.network
+    service_account = service_account or initializer.global_config.service_account
 
-        self._run(
+    self._run(
             service_account=service_account,
             network=network,
             timeout=timeout,
@@ -2288,8 +2276,8 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
             persistent_resource_id=persistent_resource_id,
         )
 
-    @base.optional_sync()
-    def _run(
+  @base.optional_sync()
+  def _run(
         self,
         service_account: Optional[str] = None,
         network: Optional[str] = None,
@@ -2304,7 +2292,7 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
         disable_retries: bool = False,
         persistent_resource_id: Optional[str] = None,
     ) -> None:
-        """Helper method to ensure network synchronization and to run the configured CustomJob.
+    """Helper method to ensure network synchronization and to run the configured CustomJob.
 
         Args:
             service_account (str):
@@ -2370,7 +2358,7 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
                 configs on the job should be consistent with those on the
                 PersistentResource, otherwise, the job will be rejected.
         """
-        self.submit(
+    self.submit(
             service_account=service_account,
             network=network,
             timeout=timeout,
@@ -2384,9 +2372,9 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
             persistent_resource_id=persistent_resource_id,
         )
 
-        self._block_until_complete()
+    self._block_until_complete()
 
-    def submit(
+  def submit(
         self,
         *,
         service_account: Optional[str] = None,
@@ -2401,7 +2389,7 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
         disable_retries: bool = False,
         persistent_resource_id: Optional[str] = None,
     ) -> None:
-        """Submit the configured CustomJob.
+    """Submit the configured CustomJob.
 
         Args:
             service_account (str):
@@ -2471,97 +2459,97 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
                 `experiment` is not specified or the specified experiment
                 doesn't have a backing tensorboard.
         """
-        if experiment and tensorboard:
-            raise ValueError("'experiment' and 'tensorboard' cannot be set together.")
-        if self._enable_autolog and (not experiment):
-            raise ValueError(
+    if experiment and tensorboard:
+      raise ValueError("'experiment' and 'tensorboard' cannot be set together.")
+    if self._enable_autolog and (not experiment):
+      raise ValueError(
                 "'experiment' is required since you've enabled autolog in 'from_local_script'."
             )
 
-        service_account = service_account or initializer.global_config.service_account
-        if service_account:
-            self._gca_resource.job_spec.service_account = service_account
+    service_account = service_account or initializer.global_config.service_account
+    if service_account:
+      self._gca_resource.job_spec.service_account = service_account
 
-        if network:
-            self._gca_resource.job_spec.network = network
+    if network:
+      self._gca_resource.job_spec.network = network
 
-        if timeout or restart_job_on_worker_restart or disable_retries:
-            timeout = duration_pb2.Duration(seconds=timeout) if timeout else None
-            self._gca_resource.job_spec.scheduling = gca_custom_job_compat.Scheduling(
+    if timeout or restart_job_on_worker_restart or disable_retries:
+      timeout = duration_pb2.Duration(seconds=timeout) if timeout else None
+      self._gca_resource.job_spec.scheduling = gca_custom_job_compat.Scheduling(
                 timeout=timeout,
                 restart_job_on_worker_restart=restart_job_on_worker_restart,
                 disable_retries=disable_retries,
             )
 
-        if enable_web_access:
-            self._gca_resource.job_spec.enable_web_access = enable_web_access
+    if enable_web_access:
+      self._gca_resource.job_spec.enable_web_access = enable_web_access
 
-        if tensorboard:
-            self._gca_resource.job_spec.tensorboard = tensorboard
+    if tensorboard:
+      self._gca_resource.job_spec.tensorboard = tensorboard
 
-        if persistent_resource_id:
-            self._gca_resource.job_spec.persistent_resource_id = persistent_resource_id
+    if persistent_resource_id:
+      self._gca_resource.job_spec.persistent_resource_id = persistent_resource_id
 
-        # TODO(b/275105711) Update implementation after experiment/run in the proto
-        if experiment:
-            # short-term solution to set experiment/experimentRun in SDK
-            if isinstance(experiment, aiplatform.Experiment):
-                self._experiment = experiment
-                # convert the Experiment instance to string to be passed to env
-                experiment = experiment.name
-            else:
-                self._experiment = aiplatform.Experiment.get(experiment_name=experiment)
-            if not self._experiment:
-                raise ValueError(
+    # TODO(b/275105711) Update implementation after experiment/run in the proto
+    if experiment:
+      # short-term solution to set experiment/experimentRun in SDK
+      if isinstance(experiment, aiplatform.Experiment):
+        self._experiment = experiment
+        # convert the Experiment instance to string to be passed to env
+        experiment = experiment.name
+      else:
+        self._experiment = aiplatform.Experiment.get(experiment_name=experiment)
+      if not self._experiment:
+        raise ValueError(
                     f"Experiment '{experiment}' doesn't exist. "
                     "Please call aiplatform.init(experiment='my-exp') to create an experiment."
                 )
-            elif (
+      elif (
                 not self._experiment.backing_tensorboard_resource_name
                 and self._enable_autolog
             ):
-                raise ValueError(
+        raise ValueError(
                     f"Experiment '{experiment}' doesn't have a backing tensorboard resource, "
                     "which is required by the experiment autologging feature. "
                     "Please call Experiment.assign_backing_tensorboard('my-tb-resource-name')."
                 )
 
-            # if run name is not specified, auto-generate one
-            if not experiment_run:
-                experiment_run = (
+      # if run name is not specified, auto-generate one
+      if not experiment_run:
+        experiment_run = (
                     # TODO(b/223262536)Once display_name is optional this run name
                     # might be invalid as well.
                     f"{self._gca_resource.display_name}-{uuid.uuid4().hex[0:5]}"
                 )
 
-            # get or create the experiment run for the job
-            if isinstance(experiment_run, aiplatform.ExperimentRun):
-                self._experiment_run = experiment_run
-                # convert the ExperimentRun instance to string to be passed to env
-                experiment_run = experiment_run.name
-            else:
-                self._experiment_run = aiplatform.ExperimentRun.get(
+      # get or create the experiment run for the job
+      if isinstance(experiment_run, aiplatform.ExperimentRun):
+        self._experiment_run = experiment_run
+        # convert the ExperimentRun instance to string to be passed to env
+        experiment_run = experiment_run.name
+      else:
+        self._experiment_run = aiplatform.ExperimentRun.get(
                     run_name=experiment_run,
                     experiment=self._experiment,
                 )
-            if not self._experiment_run:
-                self._experiment_run = aiplatform.ExperimentRun.create(
+      if not self._experiment_run:
+        self._experiment_run = aiplatform.ExperimentRun.create(
                     run_name=experiment_run,
                     experiment=self._experiment,
                 )
-            self._experiment_run.update_state(execution_v1.Execution.State.RUNNING)
+      self._experiment_run.update_state(execution_v1.Execution.State.RUNNING)
 
-            worker_pool_specs = self._gca_resource.job_spec.worker_pool_specs
-            for spec in worker_pool_specs:
-                if not spec:
-                    continue
+      worker_pool_specs = self._gca_resource.job_spec.worker_pool_specs
+      for spec in worker_pool_specs:
+        if not spec:
+          continue
 
-                if "python_package_spec" in spec:
-                    container_spec = spec.python_package_spec
-                else:
-                    container_spec = spec.container_spec
+        if "python_package_spec" in spec:
+          container_spec = spec.python_package_spec
+        else:
+          container_spec = spec.container_spec
 
-                experiment_env = [
+        experiment_env = [
                     {
                         "name": metadata_constants.ENV_EXPERIMENT_KEY,
                         "value": experiment,
@@ -2571,52 +2559,52 @@ class CustomJob(_RunnableJob, base.PreviewMixin):
                         "value": experiment_run,
                     },
                 ]
-                if "env" in container_spec:
-                    container_spec.env.extend(experiment_env)
-                else:
-                    container_spec.env = experiment_env
+        if "env" in container_spec:
+          container_spec.env.extend(experiment_env)
+        else:
+          container_spec.env = experiment_env
 
-        _LOGGER.log_create_with_lro(self.__class__)
+    _LOGGER.log_create_with_lro(self.__class__)
 
-        self._gca_resource = self.api_client.create_custom_job(
+    self._gca_resource = self.api_client.create_custom_job(
             parent=self._parent,
             custom_job=self._gca_resource,
             timeout=create_request_timeout,
         )
 
-        _LOGGER.log_create_complete_with_getter(
+    _LOGGER.log_create_complete_with_getter(
             self.__class__, self._gca_resource, "custom_job"
         )
 
-        _LOGGER.info("View Custom Job:\n%s" % self._dashboard_uri())
+    _LOGGER.info("View Custom Job:\n%s" % self._dashboard_uri())
 
-        if tensorboard:
-            _LOGGER.info(
+    if tensorboard:
+      _LOGGER.info(
                 "View Tensorboard:\n%s"
                 % console_utils.custom_job_tensorboard_console_uri(
                     tensorboard, self.resource_name
                 )
             )
 
-        if experiment:
-            custom_job = {
+    if experiment:
+      custom_job = {
                 metadata_constants._CUSTOM_JOB_RESOURCE_NAME: self.resource_name,
                 metadata_constants._CUSTOM_JOB_CONSOLE_URI: self._dashboard_uri(),
             }
 
-            run_context = self._experiment_run._metadata_node
-            custom_jobs = run_context._gca_resource.metadata.get(
+      run_context = self._experiment_run._metadata_node
+      custom_jobs = run_context._gca_resource.metadata.get(
                 metadata_constants._CUSTOM_JOB_KEY
             )
-            if custom_jobs:
-                custom_jobs.append(custom_job)
-            else:
-                custom_jobs = [custom_job]
-            run_context.update({metadata_constants._CUSTOM_JOB_KEY: custom_jobs})
+      if custom_jobs:
+        custom_jobs.append(custom_job)
+      else:
+        custom_jobs = [custom_job]
+      run_context.update({metadata_constants._CUSTOM_JOB_KEY: custom_jobs})
 
-    @property
-    def job_spec(self):
-        return self._gca_resource.job_spec
+  @property
+  def job_spec(self):
+    return self._gca_resource.job_spec
 
 
 class HyperparameterTuningJob(_RunnableJob, base.PreviewMixin):
