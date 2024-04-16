@@ -19,12 +19,12 @@ import ray.data
 from ray.data.dataset import Dataset
 from typing import Any, Dict, Optional
 
-from google.cloud.aiplatform.preview.vertex_ray.bigquery_datasource import (
+from google.cloud.aiplatform.vertex_ray.bigquery_datasource import (
     BigQueryDatasource,
 )
 
 try:
-    from google.cloud.aiplatform.preview.vertex_ray.bigquery_datasink import (
+    from google.cloud.aiplatform.vertex_ray.bigquery_datasink import (
         _BigQueryDatasink,
     )
 except ImportError:

@@ -24,7 +24,7 @@ from typing import Callable, Optional, Union, TYPE_CHECKING
 from google.cloud import aiplatform
 from google.cloud.aiplatform import initializer
 from google.cloud.aiplatform import utils
-from google.cloud.aiplatform.preview.vertex_ray.predict.util import (
+from google.cloud.aiplatform.vertex_ray.predict.util import (
     predict_utils,
 )
 
