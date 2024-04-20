@@ -433,8 +433,11 @@ class LangchainAgent:
         Returns:
             The output of querying the Agent with the given input and config.
         """
+        from langchain.load import dump as langchain_load_dump
         if isinstance(input, str):
             input = {"input": input}
         if not self._runnable:
             self.set_up()
-        return self._runnable.invoke(input=input, config=config, **kwargs)
+        return langchain_load_dump.dumpd(
+            self._runnable.invoke(input=input, config=config, **kwargs)
+        )
