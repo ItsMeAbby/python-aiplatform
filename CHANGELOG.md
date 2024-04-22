@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.49.0](https://github.com/googleapis/python-aiplatform/compare/v1.48.0...v1.49.0) (2024-04-22)
+
+
+### Features
+
+* Add additional parameters for `GenerationConfig` ([0599ca1](https://github.com/googleapis/python-aiplatform/commit/0599ca18342aece9d8b9b35534294de541593ef9))
+* Add FeatureNormType to `MatchingEngineIndexConfig`. ([c0e7acc](https://github.com/googleapis/python-aiplatform/commit/c0e7acc27e67ef1a951bb4bd97f489164dda14f9))
+* Add mappings to pipeline templates for text-embedding models. ([6279924](https://github.com/googleapis/python-aiplatform/commit/627992484ec16fbf7fdfc9c963046e10e3d7c6bf))
+
 ## [1.48.0](https://github.com/googleapis/python-aiplatform/compare/v1.47.0...v1.48.0) (2024-04-17)
 
 
